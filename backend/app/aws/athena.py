@@ -1,0 +1,119 @@
+import time
+import logging
+from typing import Dict, Any, List, Optional
+from app.aws.session import get_athena_client
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, Any]:
+    """
+    Executes a SQL query on Amazon Athena and returns actual results, timing, and data scanned metrics.
+    """
+    try:
+        client = get_athena_client()
+        
+        output_location = settings.AWS_ATHENA_OUTPUT
+        if not output_location.endswith('/'):
+            output_location += '/'
+            
+        start_res = client.start_query_execution(
+            QueryString=sql_query,
+            QueryExecutionContext={
+                'Database': settings.AWS_GLUE_DATABASE
+            },
+            ResultConfiguration={
+                'OutputLocation': output_location
+            },
+            WorkGroup=settings.AWS_ATHENA_WORKGROUP
+        )
+        
+        execution_id = start_res.get('QueryExecutionId')
+        if not execution_id:
+            raise RuntimeError("AWS Athena failed to assign Query Execution ID")
+
+        # Poll for completion
+        attempts = 0
+        state = 'RUNNING'
+        execution_time_ms = 0
+        data_scanned_mb = '0.00'
+        
+        while attempts < 60:
+            attempts += 1
+            time.sleep(1)
+            
+            check_res = client.get_query_execution(QueryExecutionId=execution_id)
+            exec_info = check_res.get('QueryExecution', {})
+            status_info = exec_info.get('Status', {})
+            state = status_info.get('State', 'UNKNOWN')
+            
+            if state in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
+                stats = exec_info.get('Statistics', {})
+                bytes_scanned = stats.get('DataScannedInBytes', 0)
+                data_scanned_mb = f"{bytes_scanned / (1024 * 1024):.2f}"
+                execution_time_ms = stats.get('EngineExecutionTimeInMillis', 0)
+                
+                if state == 'FAILED':
+                    error_msg = status_info.get('StateChangeReason', 'Athena query execution failed.')
+                    return {
+                        'queryExecutionId': execution_id,
+                        'status': 'FAILED',
+                        'executionTimeMs': execution_time_ms,
+                        'dataScannedMb': data_scanned_mb,
+                        'columns': [],
+                        'rows': [],
+                        'errorMessage': error_msg
+                    }
+                break
+
+        if state != 'SUCCEEDED':
+            return {
+                'queryExecutionId': execution_id,
+                'status': state,
+                'executionTimeMs': execution_time_ms,
+                'dataScannedMb': data_scanned_mb,
+                'columns': [],
+                'rows': [],
+                'errorMessage': f"Query execution timed out or ended in state: {state}"
+            }
+
+        # Fetch Query Results
+        results_res = client.get_query_results(QueryExecutionId=execution_id, MaxResults=max_results)
+        result_set = results_res.get('ResultSet', {})
+        column_info = result_set.get('ResultSetMetadata', {}).get('ColumnInfo', [])
+        columns = [col.get('Name', f'col_{i}') for i, col in enumerate(column_info)]
+
+        raw_rows = result_set.get('Rows', [])
+        # The first row is headers
+        data_rows = raw_rows[1:] if len(raw_rows) > 0 else []
+
+        parsed_rows = []
+        for r in data_rows:
+            row_dict = {}
+            datum_list = r.get('Data', [])
+            for i, col_name in enumerate(columns):
+                val = datum_list[i].get('VarCharValue') if i < len(datum_list) else None
+                row_dict[col_name] = val
+            parsed_rows.append(row_dict)
+
+        return {
+            'queryExecutionId': execution_id,
+            'status': 'SUCCEEDED',
+            'executionTimeMs': execution_time_ms,
+            'dataScannedMb': data_scanned_mb,
+            'columns': columns,
+            'rows': parsed_rows,
+            'errorMessage': None
+        }
+
+    except Exception as e:
+        logger.error(f"Athena Execution Failure: {e}")
+        return {
+            'queryExecutionId': 'error',
+            'status': 'FAILED',
+            'executionTimeMs': 0,
+            'dataScannedMb': '0.00',
+            'columns': [],
+            'rows': [],
+            'errorMessage': str(e)
+        }
