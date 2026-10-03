@@ -82,9 +82,14 @@ def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, A
 
         # Fetch Query Results with pagination support
         columns = []
+        column_types = []
         parsed_rows = []
         next_token = None
         is_first_page = True
+
+        INT_TYPES = {'integer', 'int', 'tinyint', 'smallint', 'bigint'}
+        FLOAT_TYPES = {'float', 'double', 'real', 'decimal', 'numeric'}
+        BOOL_TYPES = {'boolean'}
 
         while True:
             page_size = min(1000, max_results - len(parsed_rows))
@@ -104,6 +109,7 @@ def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, A
             if is_first_page:
                 column_info = result_set.get('ResultSetMetadata', {}).get('ColumnInfo', [])
                 columns = [col.get('Name', f'col_{i}') for i, col in enumerate(column_info)]
+                column_types = [col.get('Type', '').lower() for col in column_info]
                 raw_rows = result_set.get('Rows', [])
                 data_rows = raw_rows[1:] if len(raw_rows) > 0 else []
                 is_first_page = False
@@ -115,6 +121,35 @@ def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, A
                 datum_list = r.get('Data', [])
                 for i, col_name in enumerate(columns):
                     val = datum_list[i].get('VarCharValue') if i < len(datum_list) else None
+                    if val is not None:
+                        col_type = column_types[i] if i < len(column_types) else ''
+                        if col_type in INT_TYPES:
+                            s = val.strip()
+                            if s == '' or s.lower() == 'null':
+                                val = None
+                            else:
+                                try:
+                                    val = int(s)
+                                except ValueError:
+                                    try:
+                                        val = int(float(s))
+                                    except Exception:
+                                        pass
+                        elif col_type in FLOAT_TYPES:
+                            s = val.strip()
+                            if s == '' or s.lower() == 'null':
+                                val = None
+                            else:
+                                try:
+                                    val = float(s)
+                                except Exception:
+                                    pass
+                        elif col_type in BOOL_TYPES:
+                            s = val.strip().lower()
+                            if s in ('true', 't', '1'):
+                                val = True
+                            elif s in ('false', 'f', '0'):
+                                val = False
                     row_dict[col_name] = val
                 parsed_rows.append(row_dict)
                 if len(parsed_rows) >= max_results:

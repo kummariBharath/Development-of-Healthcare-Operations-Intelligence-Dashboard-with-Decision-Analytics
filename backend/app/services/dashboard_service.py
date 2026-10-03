@@ -38,21 +38,150 @@ else:
 _TABLE_CACHE: Dict[str, Any] = {}
 _CACHE_TTL_SECONDS = 300  # 5 minutes TTL
 
+# Column names that must NEVER be converted to numeric:
+_PROTECTED_COLUMNS = {
+    'facility_id', 'department_id', 'doctor_id', 'patient_id', 'bed_id',
+    'appointment_id', 'bill_id', 'claim_id', 'order_id', 'po_id',
+    'vendor_id', 'incident_id', 'action_id', 'feedback_id', 'complaint_id',
+    'lab_order_id', 'test_id', 'sample_id', 'shift_id', 'staff_id',
+    'workload_id', 'financial_id', 'icu_stay_id', 'event_id', 'discharge_id',
+    'movement_id', 'from_bed_id', 'to_bed_id', 'from_department_id', 'to_department_id',
+    'medicine_id', 'batch_id', 'prescription_id', 'supply_po_id', 'surgery_id',
+    'facility_name', 'doctor_name', 'department_name', 'patient_name', 'vendor_name', 'medicine_name',
+    'bill_date', 'admission_date', 'discharge_date', 'submission_date', 'arrival_datetime',
+    'order_date', 'po_date', 'incident_date', 'audit_date', 'complaint_date', 'feedback_date',
+    'date', 'month', 'expiry_date', 'due_date',
+    'claim_status', 'payment_status', 'payment_method', 'service_type', 'admission_type',
+    'discharge_status', 'patient_type', 'current_status', 'status', 'action_status',
+    'risk_level', 'severity', 'incident_type', 'audit_type', 'sample_status',
+    'gender', 'city', 'state', 'payer', 'specialization', 'employment_type',
+    'category', 'vendor_category', 'disposition', 'arrival_mode', 'admission_required',
+    'ventilation_required', 'outcome', 'sentiment', 'feedback_channel', 'complaint_category',
+    'discharge_barrier', 'denial_reason', 'booking_type', 'event_type', 'stock_status'
+}
+
+# Operational, financial, and clinical metric columns:
+_KNOWN_NUMERIC_COLUMNS = {
+    # Financial
+    'net_amount', 'gross_amount', 'discount_amount', 'insurance_amount', 'patient_amount',
+    'paid_amount', 'outstanding_amount', 'claimed_amount', 'outstanding_claim_amount',
+    'revenue', 'operating_cost', 'operating_profit', 'payroll_cost', 'supply_cost',
+    'budget_revenue', 'budget_cost', 'revenue_variance', 'cost_variance', 'amount',
+    'category_amount', 'order_value', 'order_amount', 'dispense_value', 'unit_cost',
+    'standard_cost', 'transaction_value', 'daily_cost', 'estimated_cost', 'actual_cost',
+    'total_val', 'total_revenue', 'gross_revenue', 'total_claimed', 'denied_amount',
+    'gross_billed', 'total_discounts', 'net_billed', 'total_paid',
+    # Counts & Quantities
+    'current_stock', 'reorder_level', 'reserved_stock', 'available_stock',
+    'dispensed_quantity', 'quantity', 'ordered_quantity', 'batch_quantity',
+    'quantity_prescribed', 'appointments_handled', 'surgeries_performed', 'emergency_cases',
+    'inpatient_rounds', 'tasks_completed', 'patients_assigned', 'findings_count',
+    'cnt', 'total_claims', 'denied_claims', 'total_admissions',
+    # Durations, Times & Clinical Scores
+    'waiting_time_minutes', 'treatment_duration_minutes', 'event_duration_minutes',
+    'wait_time_minutes', 'consultation_duration_minutes', 'transfer_wait_minutes',
+    'discharge_delay_hours', 'ventilator_hours', 'working_hours', 'overtime_hours',
+    'hours_worked', 'scheduled_hours', 'worked_hours', 'available_hours',
+    'tat_hours', 'target_tat_hours', 'resolution_hours', 'avg_lead_time_days',
+    'expected_delivery_days', 'actual_delivery_days', 'length_of_stay_days',
+    'avg_los', 'avg_ed_wait', 'experience_years', 'age', 'triage_level',
+    'acuity_score', 'compliance_score', 'quality_score', 'workload_score',
+    'overall_rating', 'wait_time_rating', 'staff_rating', 'service_quality_rating',
+    'nps_score', 'csat_score', 'rating',
+    # Percentages & Rates
+    'utilization_pct', 'on_time_delivery_pct', 'patient_nurse_ratio'
+}
+
+def _to_num(series: Any, fillna: Optional[float] = None) -> pd.Series:
+    """
+    Safely converts a pandas Series or list/array to numeric float/int,
+    stripping whitespace, commas, and currency symbols.
+    """
+    if series is None:
+        return pd.Series(dtype=float)
+    if isinstance(series, pd.DataFrame):
+        return pd.Series(dtype=float)
+    if not isinstance(series, pd.Series):
+        series = pd.Series(series)
+    if pd.api.types.is_numeric_dtype(series):
+        s = series
+    else:
+        cleaned = series.astype(str).str.replace(r'[$₹,]', '', regex=True).str.strip()
+        s = pd.to_numeric(cleaned, errors='coerce')
+    if fillna is not None:
+        s = s.fillna(fillna)
+    return s
+
+def _safe_sum(df: Optional[pd.DataFrame], col: str, fillna: float = 0.0) -> float:
+    """
+    Safely computes the numeric sum of a column in a DataFrame,
+    preventing string concatenation and conversion crashes.
+    """
+    if df is None or df.empty or col not in df.columns:
+        return 0.0
+    series = _to_num(df[col], fillna=fillna)
+    val = series.sum()
+    return float(val) if pd.notna(val) else 0.0
+
+def _safe_mean(df: Optional[pd.DataFrame], col: str, default: float = 0.0) -> float:
+    """
+    Safely computes the numeric mean of a column in a DataFrame,
+    handling string values, NaNs, and empty slices.
+    """
+    if df is None or df.empty or col not in df.columns:
+        return default
+    series = _to_num(df[col]).dropna()
+    if series.empty:
+        return default
+    val = series.mean()
+    return float(val) if pd.notna(val) else default
+
 def _clean_df_types(df: pd.DataFrame) -> pd.DataFrame:
     """
     Safely converts numeric columns from string/object to float/int
-    so aggregations (.sum(), .mean(), etc.) work identically to pd.read_csv().
+    so aggregations (.sum(), .mean(), etc.) work reliably.
+    Preserves IDs, names, dates, statuses, and categorical columns as strings.
     """
     if df is None or df.empty:
         return df
 
     for col in df.columns:
-        if df[col].dtype == object:
-            converted = pd.to_numeric(df[col], errors='coerce')
-            valid_orig = df[col].dropna()
-            valid_conv = converted.dropna()
-            if len(valid_orig) > 0 and len(valid_conv) >= len(valid_orig) * 0.8:
-                df[col] = converted
+        col_str = str(col).strip()
+        col_lower = col_str.lower()
+
+        # If already numeric, do not alter
+        if pd.api.types.is_numeric_dtype(df[col]):
+            continue
+
+        # 1. Protected identifiers and categoricals: NEVER convert to numeric
+        if col_lower in _PROTECTED_COLUMNS or col_lower.endswith('_id') or col_lower == 'id':
+            continue
+
+        # 2. Known numeric column OR metric-indicating suffix:
+        is_known_numeric = (
+            col_lower in _KNOWN_NUMERIC_COLUMNS
+            or col_lower.endswith(('_amount', '_cost', '_revenue', '_score', '_hours',
+                                  '_minutes', '_days', '_pct', '_rate', '_count', '_value',
+                                  '_quantity', '_level', '_rating'))
+        )
+
+        if is_known_numeric:
+            cleaned = df[col].astype(str).str.replace(r'[$₹,]', '', regex=True).str.strip()
+            df[col] = pd.to_numeric(cleaned, errors='coerce').fillna(0)
+            continue
+
+        # 3. For any other column: if it contains categorical/date/name keywords, skip
+        if any(term in col_lower for term in ('name', 'date', 'time', 'status', 'type', 'code', 'category', 'desc', 'barrier', 'reason')):
+            continue
+
+        # Otherwise, attempt safe numeric conversion if majority of values are numbers
+        cleaned = df[col].astype(str).str.replace(r'[$₹,]', '', regex=True).str.strip()
+        converted = pd.to_numeric(cleaned, errors='coerce')
+        valid_orig = df[col].dropna()
+        valid_conv = converted.dropna()
+        if len(valid_orig) > 0 and len(valid_conv) >= len(valid_orig) * 0.9:
+            df[col] = converted
+
     return df
 
 def _load_table(table_name: str, max_results: int = 15000) -> pd.DataFrame:
@@ -339,16 +468,16 @@ def get_executive_summary(
     df_ed = _apply_date_filter(df_ed, 'arrival_datetime', timeframe, start_date, end_date)
 
     total_admissions = len(df_adm) if df_adm is not None else 0
-    avg_los = round(df_adm['length_of_stay_days'].mean(), 1) if df_adm is not None and not df_adm.empty else 0.0
+    avg_los = round(_safe_mean(df_adm, 'length_of_stay_days'), 1)
     
-    total_revenue = float(df_bil['net_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
+    total_revenue = _safe_sum(df_bil, 'net_amount')
     rev_formatted = f"₹{total_revenue / 1e6:.2f} M" if total_revenue >= 1e6 else f"₹{total_revenue / 1e3:.1f} K"
     
     total_claims = len(df_clm) if df_clm is not None else 0
     denied_claims = len(df_clm[df_clm['claim_status'] == 'Denied']) if df_clm is not None and not df_clm.empty else 0
     denial_rate = round((denied_claims / total_claims * 100), 2) if total_claims > 0 else 0.0
 
-    avg_ed_wait = round(df_ed['waiting_time_minutes'].mean(), 1) if df_ed is not None and not df_ed.empty else 0.0
+    avg_ed_wait = round(_safe_mean(df_ed, 'waiting_time_minutes'), 1)
 
     total_beds = len(df_bed) if df_bed is not None else 0
     occupied_beds = len(df_bed[df_bed['current_status'] == 'Occupied']) if df_bed is not None and not df_bed.empty else 0
@@ -445,12 +574,12 @@ def get_facility_comparison(
         fac_id = str(f['facility_id'])
         name = str(f['facility_name'])
         
-        f_adm = df_adm[df_adm['facility_id'] == fac_id] if df_adm is not None and not df_adm.empty else pd.DataFrame()
-        f_bil = df_bil[df_bil['facility_id'] == fac_id] if df_bil is not None and not df_bil.empty else pd.DataFrame()
-        f_clm = df_clm[df_clm['facility_id'] == fac_id] if df_clm is not None and not df_clm.empty else pd.DataFrame()
-        f_bed = df_bed[df_bed['facility_id'] == fac_id] if df_bed is not None and not df_bed.empty else pd.DataFrame()
+        f_adm = df_adm[df_adm['facility_id'].astype(str) == fac_id] if df_adm is not None and not df_adm.empty and 'facility_id' in df_adm.columns else pd.DataFrame()
+        f_bil = df_bil[df_bil['facility_id'].astype(str) == fac_id] if df_bil is not None and not df_bil.empty and 'facility_id' in df_bil.columns else pd.DataFrame()
+        f_clm = df_clm[df_clm['facility_id'].astype(str) == fac_id] if df_clm is not None and not df_clm.empty and 'facility_id' in df_clm.columns else pd.DataFrame()
+        f_bed = df_bed[df_bed['facility_id'].astype(str) == fac_id] if df_bed is not None and not df_bed.empty and 'facility_id' in df_bed.columns else pd.DataFrame()
 
-        rev = float(f_bil['net_amount'].sum()) if not f_bil.empty else 0.0
+        rev = _safe_sum(f_bil, 'net_amount')
         tot_clm = len(f_clm)
         den_clm = len(f_clm[f_clm['claim_status'] == 'Denied']) if not f_clm.empty else 0
         denial_rate = round((den_clm / tot_clm * 100), 1) if tot_clm > 0 else 0.0
@@ -489,11 +618,18 @@ def get_billing_intelligence(
 
     df_bil = _apply_date_filter(df_bil, 'bill_date', timeframe, start_date, end_date)
         
-    tot_rev = float(df_bil['net_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    gross_rev = float(df_bil['gross_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    insurance_paid = float(df_bil['insurance_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    patient_paid = float(df_bil['patient_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    outstanding_ar = float(df_bil['outstanding_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
+    if df_bil is not None and not df_bil.empty:
+        df_bil['net_amount'] = _to_num(df_bil['net_amount'], fillna=0.0)
+        df_bil['gross_amount'] = _to_num(df_bil['gross_amount'], fillna=0.0)
+        df_bil['insurance_amount'] = _to_num(df_bil['insurance_amount'], fillna=0.0)
+        df_bil['patient_amount'] = _to_num(df_bil['patient_amount'], fillna=0.0)
+        df_bil['outstanding_amount'] = _to_num(df_bil['outstanding_amount'], fillna=0.0)
+
+    tot_rev = _safe_sum(df_bil, 'net_amount')
+    gross_rev = _safe_sum(df_bil, 'gross_amount')
+    insurance_paid = _safe_sum(df_bil, 'insurance_amount')
+    patient_paid = _safe_sum(df_bil, 'patient_amount')
+    outstanding_ar = _safe_sum(df_bil, 'outstanding_amount')
 
     dept_rev = []
     if df_dept is not None and df_bil is not None and not df_bil.empty and 'department_id' in df_bil.columns:
@@ -539,15 +675,14 @@ def get_claims_intelligence(
     """
     df_clm = _load_table('claims')
     if facility_id != 'all' and df_clm is not None and not df_clm.empty:
-        df_clm = df_clm[df_clm['facility_id'] == facility_id]
+        df_clm = df_clm[df_clm['facility_id'].astype(str) == str(facility_id)]
 
     df_clm = _apply_date_filter(df_clm, 'submission_date', timeframe, start_date, end_date)
 
     if df_clm is None or df_clm.empty:
         return {'totalClaims': 0, 'deniedClaims': 0, 'denialRate': 0.0, 'claimedAmount': 0, 'deniedAmount': 0, 'statusBreakdown': [], 'denialReasons': [], 'payers': []}
-        
-    if facility_id != 'all':
-        df_clm = df_clm[df_clm['facility_id'] == facility_id]
+
+    df_clm['claimed_amount'] = _to_num(df_clm['claimed_amount'], fillna=0.0)
 
     tot_claims = len(df_clm)
     denied = df_clm[df_clm['claim_status'] == 'Denied']
@@ -580,8 +715,8 @@ def get_claims_intelligence(
         'totalClaims': tot_claims,
         'deniedClaims': denied_count,
         'denialRate': denial_rate,
-        'claimedAmount': float(df_clm['claimed_amount'].sum()),
-        'deniedAmount': float(denied['claimed_amount'].sum()) if not denied.empty else 0.0,
+        'claimedAmount': _safe_sum(df_clm, 'claimed_amount'),
+        'deniedAmount': _safe_sum(denied, 'claimed_amount'),
         'statusBreakdown': status_breakdown,
         'denialReasons': denial_reasons,
         'payers': payers
@@ -608,7 +743,7 @@ def get_patient_ops_intelligence(
     df_ed = _apply_date_filter(df_ed, 'arrival_datetime', timeframe, start_date, end_date)
 
     tot_adm = len(df_adm) if df_adm is not None else 0
-    avg_los = round(df_adm['length_of_stay_days'].mean(), 1) if df_adm is not None and not df_adm.empty else 0.0
+    avg_los = round(_safe_mean(df_adm, 'length_of_stay_days'), 1)
 
     adm_types = df_adm['admission_type'].value_counts().to_dict() if df_adm is not None and not df_adm.empty else {}
     admission_types = [{'type': str(k), 'count': int(v)} for k, v in adm_types.items()]
@@ -622,7 +757,7 @@ def get_patient_ops_intelligence(
         pat_types = [{'type': str(k), 'count': int(v)} for k, v in pt_counts.items()]
 
     ed_count = len(df_ed) if df_ed is not None else 0
-    avg_ed_wait = round(df_ed['waiting_time_minutes'].mean(), 1) if df_ed is not None and not df_ed.empty else 0.0
+    avg_ed_wait = round(_safe_mean(df_ed, 'waiting_time_minutes'), 1)
 
     return {
         'totalAdmissions': tot_adm,
@@ -647,14 +782,21 @@ def get_doctor_staff_intelligence(
     df_doc = _load_table('doctors')
     
     if facility_id != 'all':
-        if df_dw is not None and not df_dw.empty: df_dw = df_dw[df_dw['facility_id'] == facility_id]
-        if df_doc is not None and not df_doc.empty: df_doc = df_doc[df_doc['facility_id'] == facility_id]
+        if df_dw is not None and not df_dw.empty: df_dw = df_dw[df_dw['facility_id'].astype(str) == str(facility_id)]
+        if df_doc is not None and not df_doc.empty: df_doc = df_doc[df_doc['facility_id'].astype(str) == str(facility_id)]
 
     df_dw = _apply_date_filter(df_dw, 'date', timeframe, start_date, end_date)
 
-    avg_util = round(df_dw['utilization_pct'].mean(), 1) if df_dw is not None and not df_dw.empty else 0.0
-    tot_hrs = float(df_dw['working_hours'].sum()) if df_dw is not None and not df_dw.empty else 0.0
-    overtime_hrs = float(df_dw['overtime_hours'].sum()) if df_dw is not None and not df_dw.empty else 0.0
+    if df_dw is not None and not df_dw.empty:
+        df_dw['utilization_pct'] = _to_num(df_dw['utilization_pct'], fillna=0.0)
+        df_dw['working_hours'] = _to_num(df_dw['working_hours'], fillna=0.0)
+        df_dw['overtime_hours'] = _to_num(df_dw['overtime_hours'], fillna=0.0)
+        df_dw['appointments_handled'] = _to_num(df_dw['appointments_handled'], fillna=0)
+        df_dw['surgeries_performed'] = _to_num(df_dw['surgeries_performed'], fillna=0)
+
+    avg_util = round(_safe_mean(df_dw, 'utilization_pct'), 1)
+    tot_hrs = _safe_sum(df_dw, 'working_hours')
+    overtime_hrs = _safe_sum(df_dw, 'overtime_hours')
     doc_count = len(df_doc) if df_doc is not None else 0
 
     top_docs = []
@@ -707,11 +849,11 @@ def get_laboratory_intelligence(
     df_samp = _load_table('lab_samples')
 
     if facility_id != 'all' and df_lab is not None and not df_lab.empty:
-        df_lab = df_lab[df_lab['facility_id'] == facility_id]
+        df_lab = df_lab[df_lab['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_eq is not None and not df_eq.empty:
-        df_eq = df_eq[df_eq['facility_id'] == facility_id]
+        df_eq = df_eq[df_eq['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_samp is not None and not df_samp.empty:
-        df_samp = df_samp[df_samp['facility_id'] == facility_id]
+        df_samp = df_samp[df_samp['facility_id'].astype(str) == str(facility_id)]
 
     df_lab = _apply_date_filter(df_lab, 'order_date', timeframe, start_date, end_date)
 
@@ -727,11 +869,11 @@ def get_laboratory_intelligence(
             'priorityBreakdown': [],
             'equipment': {'total': 0, 'operational': 0, 'maintenance': 0, 'avgUtilization': 0.0},
             'samples': {'total': 0, 'collected': 0, 'processed': 0, 'rejected': 0, 'rejectionRate': 0.0},
-            'dataSource': 'Local Dataset (CSV Fallback)'
+            'dataSource': 'Amazon Athena'
         }
 
     tot_orders = len(df_lab)
-    avg_tat = round(float(df_lab['tat_hours'].mean()), 1) if not df_lab.empty and 'tat_hours' in df_lab.columns else 0.0
+    avg_tat = round(_safe_mean(df_lab, 'tat_hours'), 1)
     
     result_status_counts = df_lab['result_status'].value_counts().to_dict() if 'result_status' in df_lab.columns else {}
     normal_count = int(result_status_counts.get('Normal', 0))
@@ -739,17 +881,19 @@ def get_laboratory_intelligence(
     critical_count = int(result_status_counts.get('Critical', 0))
     completed = tot_orders
 
-    cat_counts = df_lab.groupby('category').agg(
-        orders=('lab_order_id', 'count'),
-        avgTAT=('tat_hours', 'mean')
-    ).reset_index()
     categories = []
-    for _, r in cat_counts.sort_values(by='orders', ascending=False).head(10).iterrows():
-        categories.append({
-            'category': str(r['category']),
-            'orders': int(r['orders']),
-            'avgTAT': round(float(r['avgTAT']), 1)
-        })
+    if 'category' in df_lab.columns:
+        df_lab['tat_hours'] = _to_num(df_lab['tat_hours'], fillna=0.0)
+        cat_counts = df_lab.groupby('category').agg(
+            orders=('lab_order_id', 'count'),
+            avgTAT=('tat_hours', 'mean')
+        ).reset_index()
+        for _, r in cat_counts.sort_values(by='orders', ascending=False).head(10).iterrows():
+            categories.append({
+                'category': str(r['category']),
+                'orders': int(r['orders']),
+                'avgTAT': round(float(r['avgTAT']), 1)
+            })
 
     prio_counts = df_lab['priority'].value_counts().to_dict() if 'priority' in df_lab.columns else {}
     priority_breakdown = [{'priority': str(k), 'count': int(v)} for k, v in prio_counts.items()]
@@ -757,7 +901,7 @@ def get_laboratory_intelligence(
     tot_eq = len(df_eq) if df_eq is not None else 0
     op_eq = int((df_eq['status'] == 'Operational').sum()) if df_eq is not None and 'status' in df_eq.columns else 0
     maint_eq = int((df_eq['status'] == 'Maintenance').sum()) if df_eq is not None and 'status' in df_eq.columns else 0
-    avg_eq_util = round(float(df_eq['utilization_pct'].mean()), 1) if df_eq is not None and 'utilization_pct' in df_eq.columns else 0.0
+    avg_eq_util = round(_safe_mean(df_eq, 'utilization_pct'), 1)
 
     tot_samp = len(df_samp) if df_samp is not None else 0
     samp_counts = df_samp['sample_status'].value_counts().to_dict() if df_samp is not None and 'sample_status' in df_samp.columns else {}
@@ -806,11 +950,11 @@ def get_pharmacy_inventory_intelligence(
     df_batch = _load_table('medicine_batches')
     
     if facility_id != 'all' and df_inv is not None and not df_inv.empty:
-        df_inv = df_inv[df_inv['facility_id'] == facility_id]
+        df_inv = df_inv[df_inv['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_disp is not None and not df_disp.empty:
-        df_disp = df_disp[df_disp['facility_id'] == facility_id]
+        df_disp = df_disp[df_disp['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_batch is not None and not df_batch.empty:
-        df_batch = df_batch[df_batch['facility_id'] == facility_id]
+        df_batch = df_batch[df_batch['facility_id'].astype(str) == str(facility_id)]
 
     if df_inv is None or df_inv.empty:
         return {
@@ -826,10 +970,12 @@ def get_pharmacy_inventory_intelligence(
             'totalBatches': 0,
             'lowStockItems': [],
             'categoryBreakdown': [],
-            'dataSource': 'Local Dataset (CSV Fallback)'
+            'dataSource': 'Amazon Athena'
         }
 
     tot_items = len(df_inv)
+    df_inv['current_stock'] = _to_num(df_inv['current_stock'], fillna=0)
+    df_inv['reorder_level'] = _to_num(df_inv['reorder_level'], fillna=0)
     low_stock = df_inv[df_inv['current_stock'] <= df_inv['reorder_level']]
     out_of_stock = df_inv[df_inv['current_stock'] == 0]
     low_stock_count = len(low_stock)
@@ -861,8 +1007,8 @@ def get_pharmacy_inventory_intelligence(
             })
 
     tot_disp_orders = len(df_disp) if df_disp is not None else 0
-    tot_disp_units = int(df_disp['dispensed_quantity'].sum()) if df_disp is not None and 'dispensed_quantity' in df_disp.columns else 0
-    tot_disp_val = round(float(df_disp['dispense_value'].sum()), 2) if df_disp is not None and 'dispense_value' in df_disp.columns else 0.0
+    tot_disp_units = int(_safe_sum(df_disp, 'dispensed_quantity'))
+    tot_disp_val = round(_safe_sum(df_disp, 'dispense_value'), 2)
 
     tot_batches = len(df_batch) if df_batch is not None else 0
     exp_batches = int((df_batch['expiry_date'] < '2026-10-02').sum()) if df_batch is not None and 'expiry_date' in df_batch.columns else 0
@@ -981,31 +1127,32 @@ def get_financial_intelligence(
     df_bil = _load_table('billing')
 
     if facility_id != 'all':
-        if df_fm is not None and not df_fm.empty: df_fm = df_fm[df_fm['facility_id'] == facility_id]
-        if df_exp is not None and not df_exp.empty: df_exp = df_exp[df_exp['facility_id'] == facility_id]
-        if df_bil is not None and not df_bil.empty: df_bil = df_bil[df_bil['facility_id'] == facility_id]
+        if df_fm is not None and not df_fm.empty: df_fm = df_fm[df_fm['facility_id'].astype(str) == str(facility_id)]
+        if df_exp is not None and not df_exp.empty: df_exp = df_exp[df_exp['facility_id'].astype(str) == str(facility_id)]
+        if df_bil is not None and not df_bil.empty: df_bil = df_bil[df_bil['facility_id'].astype(str) == str(facility_id)]
 
     df_fm = _apply_date_filter(df_fm, 'month', timeframe, start_date, end_date)
     df_exp = _apply_date_filter(df_exp, 'expense_date', timeframe, start_date, end_date)
     df_bil = _apply_date_filter(df_bil, 'bill_date', timeframe, start_date, end_date)
 
-    revenue = float(df_fm['revenue'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    operating_cost = float(df_fm['operating_cost'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    operating_profit = float(df_fm['operating_profit'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    payroll_cost = float(df_fm['payroll_cost'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    supply_cost = float(df_fm['supply_cost'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    budget_revenue = float(df_fm['budget_revenue'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    budget_cost = float(df_fm['budget_cost'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    revenue_variance = float(df_fm['revenue_variance'].sum()) if df_fm is not None and not df_fm.empty else 0.0
-    cost_variance = float(df_fm['cost_variance'].sum()) if df_fm is not None and not df_fm.empty else 0.0
+    revenue = _safe_sum(df_fm, 'revenue')
+    operating_cost = _safe_sum(df_fm, 'operating_cost')
+    operating_profit = _safe_sum(df_fm, 'operating_profit')
+    payroll_cost = _safe_sum(df_fm, 'payroll_cost')
+    supply_cost = _safe_sum(df_fm, 'supply_cost')
+    budget_revenue = _safe_sum(df_fm, 'budget_revenue')
+    budget_cost = _safe_sum(df_fm, 'budget_cost')
+    revenue_variance = _safe_sum(df_fm, 'revenue_variance')
+    cost_variance = _safe_sum(df_fm, 'cost_variance')
 
-    gross_billed = float(df_bil['gross_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    discounts = float(df_bil['discount_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    net_billed = float(df_bil['net_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
-    paid_realized = float(df_bil['paid_amount'].sum()) if df_bil is not None and not df_bil.empty else 0.0
+    gross_billed = _safe_sum(df_bil, 'gross_amount')
+    discounts = _safe_sum(df_bil, 'discount_amount')
+    net_billed = _safe_sum(df_bil, 'net_amount')
+    paid_realized = _safe_sum(df_bil, 'paid_amount')
 
     expense_categories = []
-    if df_exp is not None and not df_exp.empty:
+    if df_exp is not None and not df_exp.empty and 'expense_category' in df_exp.columns:
+        df_exp['amount'] = _to_num(df_exp['amount'], fillna=0.0)
         grouped = df_exp.groupby('expense_category')['amount'].sum().reset_index()
         for _, r in grouped.sort_values(by='amount', ascending=False).iterrows():
             expense_categories.append({
@@ -1265,11 +1412,16 @@ def get_supply_chain_vendors(
     df_spo = _load_table('supply_chain_purchase_orders')
 
     if facility_id != 'all':
-        if df_po is not None and not df_po.empty: df_po = df_po[df_po['facility_id'] == facility_id]
-        if df_spo is not None and not df_spo.empty: df_spo = df_spo[df_spo['facility_id'] == facility_id]
+        if df_po is not None and not df_po.empty: df_po = df_po[df_po['facility_id'].astype(str) == str(facility_id)]
+        if df_spo is not None and not df_spo.empty: df_spo = df_spo[df_spo['facility_id'].astype(str) == str(facility_id)]
 
     df_po = _apply_date_filter(df_po, 'order_date', timeframe, start_date, end_date)
     df_spo = _apply_date_filter(df_spo, 'po_date', timeframe, start_date, end_date)
+
+    if df_po is not None and not df_po.empty:
+        df_po['order_value'] = _to_num(df_po['order_value'], fillna=0.0)
+    if df_spo is not None and not df_spo.empty:
+        df_spo['order_amount'] = _to_num(df_spo['order_amount'], fillna=0.0)
 
     po_by_v = df_po.groupby('vendor_id')['order_value'].sum().to_dict() if df_po is not None and not df_po.empty else {}
     po_cnt_by_v = df_po.groupby('vendor_id')['po_id'].count().to_dict() if df_po is not None and not df_po.empty else {}
@@ -1286,10 +1438,10 @@ def get_supply_chain_vendors(
             vid = str(r['vendor_id'])
             name = str(r.get('vendor_name', vid))
             cat = str(r.get('vendor_category', 'General Supplier'))
-            rating = float(r.get('rating', 0.0))
-            on_time = float(r.get('on_time_delivery_pct', 0.0))
-            quality = float(r.get('quality_score', 0.0))
-            lead_time = float(r.get('avg_lead_time_days', 0.0))
+            rating = float(pd.to_numeric(r.get('rating'), errors='coerce') or 0.0)
+            on_time = float(pd.to_numeric(r.get('on_time_delivery_pct'), errors='coerce') or 0.0)
+            quality = float(pd.to_numeric(r.get('quality_score'), errors='coerce') or 0.0)
+            lead_time = float(pd.to_numeric(r.get('avg_lead_time_days'), errors='coerce') or 0.0)
             risk = str(r.get('risk_level', 'Unknown'))
 
             v_po_val = float(po_by_v.get(vid, 0.0)) + float(spo_by_v.get(vid, 0.0))
@@ -1407,14 +1559,14 @@ def _build_quality_compliance_response(
     # Audits Aggregation
     total_audits = len(df_qa) if df_qa is not None else 0
     if df_qa is not None and not df_qa.empty:
-        overall_score = round(float(df_qa['compliance_score'].astype(float).mean()), 1)
+        overall_score = round(_safe_mean(df_qa, 'compliance_score'), 1)
         compliant_audits = int((df_qa['status'] == 'Compliant').sum())
         minor_findings = int((df_qa['status'] == 'Minor Findings').sum())
         major_findings = int((df_qa['status'] == 'Major Findings').sum())
-        total_findings = int(df_qa['findings_count'].astype(int).sum())
+        total_findings = int(_safe_sum(df_qa, 'findings_count'))
         audits_by_type = {str(k): int(v) for k, v in df_qa['audit_type'].value_counts().items()}
         privacy_mask = df_qa['audit_type'] == 'Data Privacy'
-        privacy_score = round(float(df_qa[privacy_mask]['compliance_score'].astype(float).mean()), 1) if privacy_mask.any() else None
+        privacy_score = round(_safe_mean(df_qa[privacy_mask], 'compliance_score'), 1) if privacy_mask.any() else None
     else:
         overall_score = 0.0
         compliant_audits = 0
@@ -1451,7 +1603,7 @@ def _build_quality_compliance_response(
     # Complaints Aggregation
     total_complaints = len(df_pc) if df_pc is not None else 0
     if df_pc is not None and not df_pc.empty:
-        avg_res_hours = round(float(df_pc['resolution_hours'].astype(float).mean()), 1)
+        avg_res_hours = round(_safe_mean(df_pc, 'resolution_hours'), 1)
         complaints_by_status = {str(k): int(v) for k, v in df_pc['status'].value_counts().items()}
     else:
         avg_res_hours = 0.0
@@ -1697,7 +1849,7 @@ def _build_ai_predictive_response(
 
     # 2. Staffing capacity projection
     projected_staff = max(1, round(peak_forecast / 8.75))
-    avg_utilization = round(float(df_dw['utilization_pct'].mean()), 1) if df_dw is not None and not df_dw.empty and 'utilization_pct' in df_dw.columns else 70.9
+    avg_utilization = round(_safe_mean(df_dw, 'utilization_pct', default=70.9), 1)
 
     # 3. No-Show Risk Analytics
     total_app = len(df_app) if df_app is not None else 0
@@ -1717,20 +1869,22 @@ def _build_ai_predictive_response(
 
     # 4. Claim Denial Financial Risk
     total_clm = len(df_clm) if df_clm is not None else 0
-    denied_df = df_clm[df_clm['claim_status'] == 'Denied'] if df_clm is not None and not df_clm.empty else pd.DataFrame()
+    denied_df = df_clm[df_clm['claim_status'] == 'Denied'].copy() if df_clm is not None and not df_clm.empty else pd.DataFrame()
     denied_cnt = len(denied_df)
     denial_rate = round((denied_cnt / total_clm * 100), 1) if total_clm > 0 else 0.0
-    denied_amount = float(denied_df['claimed_amount'].sum()) if not denied_df.empty else 0.0
+    denied_amount = _safe_sum(denied_df, 'claimed_amount')
 
     denials_by_reason: List[Dict[str, Any]] = []
     if not denied_df.empty and 'denial_reason' in denied_df.columns:
+        denied_df['claimed_amount'] = _to_num(denied_df['claimed_amount'], fillna=0.0)
         for rname, grp in denied_df.groupby('denial_reason'):
             if rname != 'Not Applicable':
+                d_amt = _safe_sum(grp, 'claimed_amount')
                 denials_by_reason.append({
                     'reason': str(rname),
                     'count': len(grp),
-                    'amount': float(grp['claimed_amount'].sum()),
-                    'amountFormatted': _fmt_money(float(grp['claimed_amount'].sum()))
+                    'amount': d_amt,
+                    'amountFormatted': _fmt_money(d_amt)
                 })
         denials_by_reason.sort(key=lambda x: x['count'], reverse=True)
 
@@ -1766,6 +1920,8 @@ def _build_ai_predictive_response(
     # 6. Patient Flow Bottleneck Tree
     bottlenecks: List[Dict[str, Any]] = []
     if df_pfe is not None and not df_pfe.empty:
+        df_pfe['waiting_time_minutes'] = _to_num(df_pfe['waiting_time_minutes'], fillna=0.0)
+        df_pfe['event_duration_minutes'] = _to_num(df_pfe['event_duration_minutes'], fillna=0.0)
         flow_agg = df_pfe.groupby('event_type').agg({
             'waiting_time_minutes': 'mean',
             'event_duration_minutes': 'mean',
@@ -1878,7 +2034,12 @@ def _build_workflow_automation_response(
 
     # Rule 1: Pharmacy Low-Stock Reorder Detection
     inv_total = len(df_inv) if df_inv is not None else 0
-    inv_low = int((df_inv['current_stock'] <= df_inv['reorder_level']).sum()) if df_inv is not None and not df_inv.empty else 0
+    if df_inv is not None and not df_inv.empty:
+        df_inv['current_stock'] = _to_num(df_inv['current_stock'], fillna=0)
+        df_inv['reorder_level'] = _to_num(df_inv['reorder_level'], fillna=0)
+        inv_low = int((df_inv['current_stock'] <= df_inv['reorder_level']).sum())
+    else:
+        inv_low = 0
     rules.append({
         'id': 'WF-INV-01',
         'name': 'Pharmacy Low-Stock Reorder Detection',
@@ -1899,7 +2060,7 @@ def _build_workflow_automation_response(
     clm_total = len(df_clm) if df_clm is not None else 0
     denied_df = df_clm[df_clm['claim_status'] == 'Denied'] if df_clm is not None and not df_clm.empty else pd.DataFrame()
     clm_denied = len(denied_df)
-    denied_val = float(denied_df['claimed_amount'].sum()) if not denied_df.empty else 0.0
+    denied_val = _safe_sum(denied_df, 'claimed_amount')
     rules.append({
         'id': 'WF-CLM-02',
         'name': 'High-Denial Risk Claim Follow-Up Queue',
@@ -1936,7 +2097,12 @@ def _build_workflow_automation_response(
     })
 
     # Rule 4: Emergency Door-to-Doctor SLA Breach Warning
-    emg_high_acuity = df_emg[df_emg['triage_level'].isin([1, 2])] if df_emg is not None and not df_emg.empty else pd.DataFrame()
+    if df_emg is not None and not df_emg.empty:
+        df_emg['triage_level'] = _to_num(df_emg['triage_level'], fillna=0)
+        df_emg['waiting_time_minutes'] = _to_num(df_emg['waiting_time_minutes'], fillna=0.0)
+        emg_high_acuity = df_emg[df_emg['triage_level'].isin([1, 2])]
+    else:
+        emg_high_acuity = pd.DataFrame()
     emg_total_acuity = len(emg_high_acuity)
     emg_breaches = int((emg_high_acuity['waiting_time_minutes'] > 15).sum()) if not emg_high_acuity.empty else 0
     rules.append({
@@ -2013,7 +2179,11 @@ def _build_workflow_automation_response(
     })
 
     # Rule 8: Inpatient Bed Transfer Bottleneck Trigger
-    bt_events = df_pfe[df_pfe['event_type'] == 'Bed Transfer'] if df_pfe is not None and not df_pfe.empty else pd.DataFrame()
+    if df_pfe is not None and not df_pfe.empty:
+        df_pfe['waiting_time_minutes'] = _to_num(df_pfe['waiting_time_minutes'], fillna=0.0)
+        bt_events = df_pfe[df_pfe['event_type'] == 'Bed Transfer']
+    else:
+        bt_events = pd.DataFrame()
     bt_total = len(bt_events)
     bt_delays = int((bt_events['waiting_time_minutes'] > 20).sum()) if not bt_events.empty else 0
     rules.append({
@@ -2391,17 +2561,17 @@ def get_operations_drilldown(
             fname = str(f['facility_name'])
             loc = f"{f['city']}, {f['state']}"
             
-            f_bil = df_bil[df_bil['facility_id'] == fid] if df_bil is not None and not df_bil.empty else pd.DataFrame()
-            f_adm = df_adm[df_adm['facility_id'] == fid] if df_adm is not None and not df_adm.empty else pd.DataFrame()
-            f_clm = df_clm[df_clm['facility_id'] == fid] if df_clm is not None and not df_clm.empty else pd.DataFrame()
-            f_ed = df_ed[df_ed['facility_id'] == fid] if df_ed is not None and not df_ed.empty else pd.DataFrame()
-            f_doc = df_doc[df_doc['facility_id'] == fid] if df_doc is not None and not df_doc.empty else pd.DataFrame()
+            f_bil = df_bil[df_bil['facility_id'].astype(str) == fid] if df_bil is not None and not df_bil.empty and 'facility_id' in df_bil.columns else pd.DataFrame()
+            f_adm = df_adm[df_adm['facility_id'].astype(str) == fid] if df_adm is not None and not df_adm.empty and 'facility_id' in df_adm.columns else pd.DataFrame()
+            f_clm = df_clm[df_clm['facility_id'].astype(str) == fid] if df_clm is not None and not df_clm.empty and 'facility_id' in df_clm.columns else pd.DataFrame()
+            f_ed = df_ed[df_ed['facility_id'].astype(str) == fid] if df_ed is not None and not df_ed.empty and 'facility_id' in df_ed.columns else pd.DataFrame()
+            f_doc = df_doc[df_doc['facility_id'].astype(str) == fid] if df_doc is not None and not df_doc.empty and 'facility_id' in df_doc.columns else pd.DataFrame()
 
-            rev = float(f_bil['net_amount'].sum()) if not f_bil.empty else 0.0
+            rev = _safe_sum(f_bil, 'net_amount')
             tot_clm = len(f_clm)
             den_clm = len(f_clm[f_clm['claim_status'] == 'Denied']) if not f_clm.empty else 0
             denial_rate = round((den_clm / tot_clm * 100), 1) if tot_clm > 0 else 0.0
-            avg_ed = float(f_ed['waiting_time_minutes'].mean()) if f_ed is not None and not f_ed.empty else 30.0
+            avg_ed = round(_safe_mean(f_ed, 'waiting_time_minutes', default=30.0), 1)
 
             health_score = min(100.0, max(60.0, round(100.0 - (denial_rate * 1.2) - (avg_ed / 6.0), 1)))
             doc_cnt = len(f_doc)
@@ -2425,6 +2595,10 @@ def get_operations_drilldown(
     # 2. Aggregate Workload per doctor
     dw_agg = pd.DataFrame()
     if df_dw is not None and not df_dw.empty:
+        df_dw['appointments_handled'] = _to_num(df_dw['appointments_handled'], fillna=0)
+        df_dw['utilization_pct'] = _to_num(df_dw['utilization_pct'], fillna=0.0)
+        df_dw['surgeries_performed'] = _to_num(df_dw['surgeries_performed'], fillna=0)
+        df_dw['overtime_hours'] = _to_num(df_dw['overtime_hours'], fillna=0.0)
         dw_agg = df_dw.groupby('doctor_id').agg(
             patients_seen=('appointments_handled', 'sum'),
             avg_utilization=('utilization_pct', 'mean'),
@@ -2435,6 +2609,8 @@ def get_operations_drilldown(
     # 3. Aggregate Billing Revenue per doctor
     bil_agg = pd.DataFrame()
     if df_bil is not None and not df_bil.empty:
+        df_bil['paid_amount'] = _to_num(df_bil['paid_amount'], fillna=0.0)
+        df_bil['gross_amount'] = _to_num(df_bil['gross_amount'], fillna=0.0)
         bil_agg = df_bil.groupby('doctor_id').agg(
             revenue_paid=('paid_amount', 'sum'),
             revenue_gross=('gross_amount', 'sum'),
@@ -2565,10 +2741,13 @@ def get_medical_coding_intelligence(
         }
 
     coding_reasons = ['Authorization Missing', 'Duplicate Claim', 'Missing Documentation', 'Coding Error']
-    coding_claims = df_claims[df_claims['denial_reason'].isin(coding_reasons)]
+    coding_claims = df_claims[df_claims['denial_reason'].isin(coding_reasons)].copy()
+    if 'claimed_amount' in coding_claims.columns:
+        coding_claims['claimed_amount'] = _to_num(coding_claims['claimed_amount'], fillna=0.0)
+
     total_claims = len(df_claims)
     coding_denials_count = len(coding_claims)
-    financial_exposure = round(float(coding_claims['claimed_amount'].sum()), 2)
+    financial_exposure = round(_safe_sum(coding_claims, 'claimed_amount'), 2)
 
     reasons_grouped = coding_claims.groupby('denial_reason').agg(
         count=('claim_id', 'count'),
@@ -2576,16 +2755,17 @@ def get_medical_coding_intelligence(
     ).reset_index()
     reasons_breakdown = []
     for _, r in reasons_grouped.sort_values(by='count', ascending=False).iterrows():
+        amt = float(r['amount']) if pd.notna(r['amount']) else 0.0
         reasons_breakdown.append({
             'reason': str(r['denial_reason']),
             'count': int(r['count']),
-            'amount': round(float(r['amount']), 2),
-            'amountFormatted': _fmt_money(float(r['amount']))
+            'amount': round(amt, 2),
+            'amountFormatted': _fmt_money(amt)
         })
 
     doc_discharges = df_discharge[df_discharge['discharge_barrier'] == 'Documentation Pending'] if df_discharge is not None and 'discharge_barrier' in df_discharge.columns else pd.DataFrame()
     doc_holds_count = len(doc_discharges)
-    mean_delay = round(float(doc_discharges['discharge_delay_hours'].mean()), 1) if not doc_discharges.empty and 'discharge_delay_hours' in doc_discharges.columns else 0.0
+    mean_delay = round(_safe_mean(doc_discharges, 'discharge_delay_hours'), 1)
 
     pat_map = {}
     if df_patients is not None and not df_patients.empty:
@@ -2595,6 +2775,7 @@ def get_medical_coding_intelligence(
     audit_claims = []
     for _, r in coding_claims.sort_values(by='claimed_amount', ascending=False).head(15).iterrows():
         pid = str(r['patient_id'])
+        c_amt = float(r['claimed_amount']) if pd.notna(r['claimed_amount']) else 0.0
         audit_claims.append({
             'claimId': str(r['claim_id']),
             'billId': str(r['bill_id']) if 'bill_id' in r else '',
@@ -2602,8 +2783,8 @@ def get_medical_coding_intelligence(
             'patientName': pat_map.get(pid, f"Patient {pid}"),
             'facilityId': str(r['facility_id']),
             'payer': str(r['payer']),
-            'claimedAmount': round(float(r['claimed_amount']), 2),
-            'claimedAmountFormatted': _fmt_money(float(r['claimed_amount'])),
+            'claimedAmount': round(c_amt, 2),
+            'claimedAmountFormatted': _fmt_money(c_amt),
             'denialReason': str(r['denial_reason']),
             'submissionDate': str(r['submission_date']),
             'status': str(r['claim_status'])
@@ -2636,11 +2817,11 @@ def get_emergency_critical_intelligence(
     df_beds = _load_table('beds')
 
     if facility_id != 'all' and df_ed is not None and not df_ed.empty:
-        df_ed = df_ed[df_ed['facility_id'] == facility_id]
+        df_ed = df_ed[df_ed['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_icu is not None and not df_icu.empty:
-        df_icu = df_icu[df_icu['facility_id'] == facility_id]
+        df_icu = df_icu[df_icu['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_beds is not None and not df_beds.empty:
-        df_beds = df_beds[df_beds['facility_id'] == facility_id]
+        df_beds = df_beds[df_beds['facility_id'].astype(str) == str(facility_id)]
 
     df_ed = _apply_date_filter(df_ed, 'arrival_datetime', timeframe, start_date, end_date)
 
@@ -2668,8 +2849,8 @@ def get_emergency_critical_intelligence(
         }
 
     tot_visits = len(df_ed)
-    mean_wait = round(float(df_ed['waiting_time_minutes'].mean()), 1) if 'waiting_time_minutes' in df_ed.columns else 0.0
-    mean_treat = round(float(df_ed['treatment_duration_minutes'].mean()), 1) if 'treatment_duration_minutes' in df_ed.columns else 0.0
+    mean_wait = round(_safe_mean(df_ed, 'waiting_time_minutes'), 1)
+    mean_treat = round(_safe_mean(df_ed, 'treatment_duration_minutes'), 1)
     admitted_count = int((df_ed['admission_required'] == 'Yes').sum()) if 'admission_required' in df_ed.columns else 0
     admission_rate = round((admitted_count / tot_visits * 100), 1) if tot_visits > 0 else 0.0
 
@@ -2680,7 +2861,11 @@ def get_emergency_critical_intelligence(
         4: 'ESI 4: Less Urgent',
         5: 'ESI 5: Non-Urgent'
     }
-    triage_counts = df_ed['triage_level'].value_counts().to_dict() if 'triage_level' in df_ed.columns else {}
+    triage_counts = {}
+    if 'triage_level' in df_ed.columns:
+        triage_s = _to_num(df_ed['triage_level'])
+        triage_counts = triage_s.value_counts().to_dict()
+
     triage_breakdown = []
     for level in [1, 2, 3, 4, 5]:
         cnt = int(triage_counts.get(level, 0))
@@ -2700,8 +2885,8 @@ def get_emergency_critical_intelligence(
     tot_icu = len(df_icu) if df_icu is not None else 0
     vent_cnt = int((df_icu['ventilation_required'] == 'Yes').sum()) if df_icu is not None and 'ventilation_required' in df_icu.columns else 0
     vent_rate = round((vent_cnt / tot_icu * 100), 1) if tot_icu > 0 else 0.0
-    mean_vent_hrs = round(float(df_icu['ventilator_hours'].mean()), 1) if df_icu is not None and 'ventilator_hours' in df_icu.columns else 0.0
-    mean_acuity = round(float(df_icu['acuity_score'].mean()), 1) if df_icu is not None and 'acuity_score' in df_icu.columns else 0.0
+    mean_vent_hrs = round(_safe_mean(df_icu, 'ventilator_hours'), 1)
+    mean_acuity = round(_safe_mean(df_icu, 'acuity_score'), 1)
     icu_outcomes = []
     if df_icu is not None and 'outcome' in df_icu.columns:
         outc_counts = df_icu['outcome'].value_counts().to_dict()
@@ -2745,9 +2930,9 @@ def get_patient_experience_intelligence(
     df_pat = _load_table('patients')
 
     if facility_id != 'all' and df_fb is not None and not df_fb.empty:
-        df_fb = df_fb[df_fb['facility_id'] == facility_id]
+        df_fb = df_fb[df_fb['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_cp is not None and not df_cp.empty:
-        df_cp = df_cp[df_cp['facility_id'] == facility_id]
+        df_cp = df_cp[df_cp['facility_id'].astype(str) == str(facility_id)]
 
     df_fb = _apply_date_filter(df_fb, 'feedback_date', timeframe, start_date, end_date)
 
@@ -2772,13 +2957,14 @@ def get_patient_experience_intelligence(
         }
 
     tot_fb = len(df_fb)
-    overall_rating = round(float(df_fb['overall_rating'].mean()), 2) if 'overall_rating' in df_fb.columns else 0.0
-    csat_score = round(float(df_fb['csat_score'].mean()), 2) if 'csat_score' in df_fb.columns else 0.0
+    overall_rating = round(_safe_mean(df_fb, 'overall_rating'), 2)
+    csat_score = round(_safe_mean(df_fb, 'csat_score'), 2)
 
     if 'nps_score' in df_fb.columns:
-        promoters = int((df_fb['nps_score'] >= 9).sum())
-        detractors = int((df_fb['nps_score'] <= 6).sum())
-        nps_score = round(((promoters - detractors) / tot_fb * 100), 1)
+        nps_num = _to_num(df_fb['nps_score'])
+        promoters = int((nps_num >= 9).sum())
+        detractors = int((nps_num <= 6).sum())
+        nps_score = round(((promoters - detractors) / tot_fb * 100), 1) if tot_fb > 0 else 0.0
     else:
         nps_score = 0.0
 
@@ -2799,7 +2985,7 @@ def get_patient_experience_intelligence(
     resolved_cp = int((df_cp['status'] == 'Resolved').sum()) if df_cp is not None and 'status' in df_cp.columns else 0
     in_prog_cp = int((df_cp['status'] == 'In Progress').sum()) if df_cp is not None and 'status' in df_cp.columns else 0
     open_cp = int((df_cp['status'] == 'Open').sum()) if df_cp is not None and 'status' in df_cp.columns else 0
-    mean_res_hrs = round(float(df_cp['resolution_hours'].mean()), 1) if df_cp is not None and 'resolution_hours' in df_cp.columns else 0.0
+    mean_res_hrs = round(_safe_mean(df_cp, 'resolution_hours'), 1)
 
     cp_cats = []
     if df_cp is not None and 'complaint_category' in df_cp.columns:
@@ -2814,13 +3000,17 @@ def get_patient_experience_intelligence(
     recent_fb = []
     for _, r in df_fb.head(8).iterrows():
         pid = str(r['patient_id'])
+        try:
+            r_rating = int(float(r['overall_rating'])) if pd.notna(r.get('overall_rating')) else 4
+        except (ValueError, TypeError):
+            r_rating = 4
         recent_fb.append({
             'feedbackId': str(r['feedback_id']),
             'patientId': pid,
             'patientName': pat_map.get(pid, f"Patient {pid}"),
             'facilityId': str(r['facility_id']),
             'departmentId': str(r['department_id']),
-            'rating': int(r['overall_rating']) if pd.notna(r['overall_rating']) else 4,
+            'rating': r_rating,
             'sentiment': str(r['sentiment']),
             'channel': str(r['feedback_channel']),
             'date': str(r['feedback_date'])
