@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.aws.session import get_bedrock_client
 from app.config import settings
 
