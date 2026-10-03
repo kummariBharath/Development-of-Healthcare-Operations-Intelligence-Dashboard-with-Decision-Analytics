@@ -32,15 +32,18 @@ def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, A
         if not execution_id:
             raise RuntimeError("AWS Athena failed to assign Query Execution ID")
 
-        # Poll for completion
+        # Poll for completion with adaptive polling interval
         attempts = 0
         state = 'RUNNING'
         execution_time_ms = 0
         data_scanned_mb = '0.00'
+        sleep_interval = 0.25
         
-        while attempts < 60:
+        while attempts < 80:
             attempts += 1
-            time.sleep(1)
+            time.sleep(sleep_interval)
+            if sleep_interval < 1.0:
+                sleep_interval = min(1.0, sleep_interval * 1.5)
             
             check_res = client.get_query_execution(QueryExecutionId=execution_id)
             exec_info = check_res.get('QueryExecution', {})
@@ -77,24 +80,49 @@ def execute_athena_query(sql_query: str, max_results: int = 1000) -> Dict[str, A
                 'errorMessage': f"Query execution timed out or ended in state: {state}"
             }
 
-        # Fetch Query Results
-        results_res = client.get_query_results(QueryExecutionId=execution_id, MaxResults=max_results)
-        result_set = results_res.get('ResultSet', {})
-        column_info = result_set.get('ResultSetMetadata', {}).get('ColumnInfo', [])
-        columns = [col.get('Name', f'col_{i}') for i, col in enumerate(column_info)]
-
-        raw_rows = result_set.get('Rows', [])
-        # The first row is headers
-        data_rows = raw_rows[1:] if len(raw_rows) > 0 else []
-
+        # Fetch Query Results with pagination support
+        columns = []
         parsed_rows = []
-        for r in data_rows:
-            row_dict = {}
-            datum_list = r.get('Data', [])
-            for i, col_name in enumerate(columns):
-                val = datum_list[i].get('VarCharValue') if i < len(datum_list) else None
-                row_dict[col_name] = val
-            parsed_rows.append(row_dict)
+        next_token = None
+        is_first_page = True
+
+        while True:
+            page_size = min(1000, max_results - len(parsed_rows))
+            if page_size <= 0:
+                break
+
+            fetch_kwargs: Dict[str, Any] = {
+                'QueryExecutionId': execution_id,
+                'MaxResults': page_size
+            }
+            if next_token:
+                fetch_kwargs['NextToken'] = next_token
+
+            results_res = client.get_query_results(**fetch_kwargs)
+            result_set = results_res.get('ResultSet', {})
+
+            if is_first_page:
+                column_info = result_set.get('ResultSetMetadata', {}).get('ColumnInfo', [])
+                columns = [col.get('Name', f'col_{i}') for i, col in enumerate(column_info)]
+                raw_rows = result_set.get('Rows', [])
+                data_rows = raw_rows[1:] if len(raw_rows) > 0 else []
+                is_first_page = False
+            else:
+                data_rows = result_set.get('Rows', [])
+
+            for r in data_rows:
+                row_dict = {}
+                datum_list = r.get('Data', [])
+                for i, col_name in enumerate(columns):
+                    val = datum_list[i].get('VarCharValue') if i < len(datum_list) else None
+                    row_dict[col_name] = val
+                parsed_rows.append(row_dict)
+                if len(parsed_rows) >= max_results:
+                    break
+
+            next_token = results_res.get('NextToken')
+            if not next_token or len(parsed_rows) >= max_results:
+                break
 
         return {
             'queryExecutionId': execution_id,

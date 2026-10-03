@@ -17,6 +17,7 @@ class Settings:
     AWS_S3_REGION: str = os.getenv('AWS_S3_REGION', 'ap-south-1')
     AWS_DATA_REGION: str = os.getenv('AWS_DATA_REGION', 'ap-south-2')
     AWS_BEDROCK_REGION: str = os.getenv('AWS_BEDROCK_REGION', 'us-east-1')
+    AWS_REGION: str = os.getenv('AWS_REGION', os.getenv('AWS_S3_REGION', 'ap-south-1'))
 
     # AWS resources
     AWS_GLUE_DATABASE: str = os.getenv(
