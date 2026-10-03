@@ -2,6 +2,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import health, glue, athena, dashboard, copilot
+from fastapi import Request
+from app.aws.session import set_vercel_oidc_token, reset_vercel_oidc_token
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("medical_ops_backend")
@@ -11,7 +13,17 @@ app = FastAPI(
     version="4.2.0",
     description="Production-grade Backend REST API connecting React Frontend to AWS Glue, Athena, S3 & Bedrock"
 )
+@app.middleware("http")
+async def capture_vercel_oidc_token(request: Request, call_next):
+    token = request.headers.get("x-vercel-oidc-token")
 
+    token_context = set_vercel_oidc_token(token)
+
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        reset_vercel_oidc_token(token_context)
 # Enable CORS for React Frontend
 app.add_middleware(
     CORSMiddleware,

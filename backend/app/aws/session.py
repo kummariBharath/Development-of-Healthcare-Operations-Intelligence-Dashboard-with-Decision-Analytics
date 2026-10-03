@@ -1,6 +1,17 @@
 import os
 import boto3
 from app.config import settings
+from contextvars import ContextVar
+
+_vercel_oidc_token = ContextVar("vercel_oidc_token", default=None)
+
+
+def set_vercel_oidc_token(token):
+    return _vercel_oidc_token.set(token)
+
+
+def reset_vercel_oidc_token(token_context):
+    _vercel_oidc_token.reset(token_context)
 
 
 def _get_vercel_oidc_credentials():
@@ -8,7 +19,10 @@ def _get_vercel_oidc_credentials():
     Exchange Vercel's short-lived OIDC token for temporary AWS credentials.
     Used automatically when running on Vercel.
     """
-    oidc_token = os.getenv("VERCEL_OIDC_TOKEN")
+    oidc_token = (
+    os.getenv("VERCEL_OIDC_TOKEN")
+    or _vercel_oidc_token.get()
+)
     role_arn = os.getenv("AWS_ROLE_ARN")
 
     if not oidc_token or not role_arn:
