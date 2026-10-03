@@ -26,7 +26,7 @@ def check_s3_bucket_status() -> Dict[str, Any]:
         return {
             'status': 'connected',
             'bucket': settings.AWS_S3_BUCKET,
-            'region': settings.AWS_REGION,
+            'region': settings.AWS_S3_REGION,
             'fileCount': response.get('KeyCount', 0),
             'files': files,
             'errorMessage': None
@@ -36,7 +36,7 @@ def check_s3_bucket_status() -> Dict[str, Any]:
         return {
             'status': 'error',
             'bucket': settings.AWS_S3_BUCKET,
-            'region': settings.AWS_REGION,
+            'region': settings.AWS_S3_REGION,
             'fileCount': 0,
             'files': [],
             'errorMessage': str(e)

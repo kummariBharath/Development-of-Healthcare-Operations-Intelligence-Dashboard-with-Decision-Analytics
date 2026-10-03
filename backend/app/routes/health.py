@@ -13,7 +13,7 @@ def get_health_status():
     return {
         "status": "online",
         "service": "Medical Operations Intelligence Backend API",
-        "region": settings.AWS_REGION,
+        "region": settings.AWS_DATA_REGION,
         "glueDatabase": settings.AWS_GLUE_DATABASE,
         "s3Bucket": settings.AWS_S3_BUCKET,
         "athenaWorkgroup": settings.AWS_ATHENA_WORKGROUP,
