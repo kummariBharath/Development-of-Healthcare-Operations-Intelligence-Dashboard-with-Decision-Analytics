@@ -42,7 +42,7 @@ class Settings:
 
     AWS_BEDROCK_MODEL: str = os.getenv(
         'AWS_BEDROCK_MODEL',
-        'anthropic.claude-3-5-sonnet-20240620-v1:0'
+        'global.anthropic.claude-sonnet-5-5'
     )
 
     # Optional explicit credentials.

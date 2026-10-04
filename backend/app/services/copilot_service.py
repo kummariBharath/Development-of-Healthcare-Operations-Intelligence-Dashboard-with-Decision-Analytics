@@ -311,9 +311,10 @@ def process_copilot_query(user_query: str, facility_id: str = 'all') -> Dict[str
     # =========================================================================
     bedrock_used = False
     ai_explanation = "Deterministic analytics mode"
-    ai_status = "Amazon Bedrock: Unavailable — AWS session expired"
+    ai_status = "Amazon Bedrock: Unavailable"
 
     try:
+        from app.config import settings
         prompt = (
             f"You are the Medical Operations Intelligence AI Assistant for {facility_label}. "
             f"Answer the user's operational healthcare administration question based STRICTLY on the following verified metrics:\n"
@@ -328,16 +329,25 @@ def process_copilot_query(user_query: str, facility_id: str = 'all') -> Dict[str
         if bedrock_res.get('status') == 'success' and bedrock_res.get('summary'):
             bedrock_used = True
             ai_explanation = bedrock_res['summary']
-            ai_status = "Amazon Bedrock: Active (Claude 3 Sonnet)"
+            ai_status = f"Amazon Bedrock: Active ({settings.AWS_BEDROCK_MODEL})"
+        else:
+            err = bedrock_res.get('errorMessage') or 'Offline'
+            if 'ResourceNotFoundException' in err or 'end of its life' in err:
+                ai_status = f"Amazon Bedrock: Model Retired ({settings.AWS_BEDROCK_MODEL})"
+            elif 'Expired' in err or 'AccessDenied' in err or 'LoginRefreshRequired' in err:
+                ai_status = "Amazon Bedrock: Session Expired (Deterministic Fallback Active)"
+            else:
+                ai_status = f"Amazon Bedrock: Standby ({err[:35]}...)"
     except Exception as e:
         logger.warning(f"Bedrock invocation bypassed: {e}")
+        ai_status = f"Amazon Bedrock: Error ({type(e).__name__})"
 
     # If Bedrock was not used, build deterministic explanation
     if not bedrock_used:
         ai_explanation = (
             f"Deterministic Analytics Mode: Query resolved directly from verified {source} telemetry. "
             f"Calculations performed across operational records for {facility_label}. "
-            f"Amazon Bedrock foundation model is offline (AWS session expired) and was not simulated."
+            f"Amazon Bedrock foundation model is in standby ({ai_status}) and metrics were verified deterministically."
         )
 
     return {

@@ -37,7 +37,19 @@ def invoke_bedrock_summary(prompt: str, context_data: Optional[Dict[str, Any]] =
         
         body_bytes = response.get('body').read()
         res_json = json.loads(body_bytes.decode('utf-8'))
-        text = res_json.get('content', [{}])[0].get('text', 'No AI response content returned.')
+
+        # Safely extract text content (supports both standard text blocks and thinking blocks)
+        content_blocks = res_json.get('content', [])
+        text_parts = [
+            b.get('text', '') for b in content_blocks
+            if isinstance(b, dict) and b.get('type') == 'text' and b.get('text')
+        ]
+        if text_parts:
+            text = "\n\n".join(text_parts)
+        elif content_blocks and isinstance(content_blocks[0], dict) and 'text' in content_blocks[0]:
+            text = content_blocks[0]['text']
+        else:
+            text = 'No AI response content returned.'
         
         return {
             'status': 'success',
