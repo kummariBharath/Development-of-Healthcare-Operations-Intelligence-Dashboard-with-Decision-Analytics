@@ -40,9 +40,17 @@ class Settings:
         's3://medical-operations-athena-results-bharath-2026/'
     )
 
-    AWS_BEDROCK_MODEL: str = os.getenv(
-        'AWS_BEDROCK_MODEL',
-        'global.anthropic.claude-sonnet-5-5'
+    _raw_bedrock_model = os.getenv('AWS_BEDROCK_MODEL', '').strip()
+    _legacy_claude_models = {
+        'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'anthropic.claude-3-5-sonnet-20240620-v1',
+        'global.anthropic.claude-sonnet-5-5',
+        'us.anthropic.claude-sonnet-5-5',
+    }
+    AWS_BEDROCK_MODEL: str = (
+        'amazon.nova-lite-v1:0'
+        if not _raw_bedrock_model or _raw_bedrock_model in _legacy_claude_models
+        else _raw_bedrock_model
     )
 
     # Optional explicit credentials.
