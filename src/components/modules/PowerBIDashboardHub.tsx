@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   RefreshCw, 
-  FileSpreadsheet,
-  FileText,
-  Loader2,
-  TrendingUp,
-  Activity,
-  DollarSign,
-  AlertTriangle
+  Loader2, 
+  TrendingUp, 
+  Activity, 
+  DollarSign, 
+  AlertTriangle 
 } from 'lucide-react';
 import { 
   fetchExecutiveSummary, 
@@ -82,22 +80,6 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
             <option value="Revenue & Claims">💰 Revenue Cycle & Claims Report</option>
             <option value="Patient Throughput">🏥 Patient Throughput & ED Report</option>
           </select>
-
-          {/* Export PDF Button */}
-          <button
-            onClick={() => onExecuteAction('export-analytics-pdf', { report: activeReport })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
-          >
-            <FileText className="w-3.5 h-3.5 text-rose-400" /> Export PDF
-          </button>
-
-          {/* Export Excel Button */}
-          <button
-            onClick={() => onExecuteAction('export-analytics-excel', { report: activeReport })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" /> Export Excel
-          </button>
         </div>
       </div>
 
