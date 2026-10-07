@@ -14,6 +14,7 @@ import {
 import type { TimeframeOption, RoleType } from '../../types';
 import { facilitiesData } from '../../data/mockData';
 import { fetchFacilities, type Facility } from '../../services/apiService';
+import { UserAccountMenu } from '../auth/UserAccountMenu';
 
 interface HeaderProps {
   selectedFacility: string;
@@ -189,6 +190,10 @@ export const Header: React.FC<HeaderProps> = ({
           <Bot className="w-4 h-4 animate-spin-slow" />
           <span>AI Copilot</span>
         </button>
+
+        {/* Divider & Enterprise User Account Profile */}
+        <div className="h-6 w-px bg-slate-800 mx-1 hidden sm:block" />
+        <UserAccountMenu />
       </div>
     </header>
   );

@@ -32,7 +32,12 @@ import { EnterpriseDrilldownModal } from './components/modals/EnterpriseDrilldow
 import { CustomKPIBuilderModal } from './components/modals/CustomKPIBuilderModal';
 import { AlertsModal } from './components/modals/AlertsModal';
 
-export const App: React.FC = () => {
+// Authentication & Security
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
+import { AuthErrorScreen } from './components/auth/AuthErrorScreen';
+
+export const MedOpsDashboard: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ModuleId>('executive');
   const [selectedFacility, setSelectedFacility] = useState<string>('all');
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>('realtime');
@@ -285,6 +290,46 @@ export const App: React.FC = () => {
         onExecuteAction={handleExecuteAction}
       />
     </div>
+  );
+};
+
+/**
+ * Enterprise Authentication Gatekeeper for Amazon Cognito
+ */
+const MedOpsAuthGuard: React.FC = () => {
+  const { isAuthenticated, isLoading, error, login } = useAuth();
+
+  if (isLoading) {
+    return (
+      <AuthLoadingScreen 
+        message="Verifying Healthcare Operations Credentials..." 
+        subMessage="Resolving Amazon Cognito OIDC session (us-east-1)..."
+      />
+    );
+  }
+
+  if (error) {
+    return <AuthErrorScreen error={error} onRetry={login} />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <AuthLoadingScreen 
+        message="Redirecting to AWS Cognito Managed Login..." 
+        subMessage="Launching secure single sign-on authentication portal..."
+      />
+    );
+  }
+
+  // Authenticated: Render complete MedOps command center
+  return <MedOpsDashboard />;
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <MedOpsAuthGuard />
+    </AuthProvider>
   );
 };
 

@@ -1,4 +1,18 @@
+import { getIdToken, getAccessToken } from './cognitoAuth';
+
 export const API_BASE_URL = '/api';
+
+/**
+ * Enterprise API fetch wrapper that injects Cognito Bearer tokens
+ */
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers || {});
+  const token = getIdToken() || getAccessToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(input, { ...init, headers });
+}
 
 export interface HealthStatus {
   status: string;
@@ -107,7 +121,7 @@ export interface CopilotResponse {
  * Fetches System Health & AWS Service connection statuses from Backend
  */
 export async function fetchHealthStatus(): Promise<HealthStatus> {
-  const res = await fetch(`${API_BASE_URL}/health`);
+  const res = await apiFetch(`${API_BASE_URL}/health`);
   if (!res.ok) throw new Error(`Backend Health Check Failed (${res.status})`);
   return res.json();
 }
@@ -116,7 +130,7 @@ export async function fetchHealthStatus(): Promise<HealthStatus> {
  * Fetches real facility list from Glue / Athena / Dataset backend
  */
 export async function fetchFacilities(): Promise<Facility[]> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/facilities`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/facilities`);
   if (!res.ok) throw new Error('Failed to fetch facility list from backend.');
   return res.json();
 }
@@ -125,7 +139,7 @@ export async function fetchFacilities(): Promise<Facility[]> {
  * Fetches Executive Summary KPI metrics filtered by facility
  */
 export async function fetchExecutiveSummary(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<ExecutiveSummaryResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/summary?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/summary?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch executive summary from backend.');
   return res.json();
 }
@@ -134,7 +148,7 @@ export async function fetchExecutiveSummary(facilityId: string = 'all', timefram
  * Fetches cross-facility comparative data
  */
 export async function fetchFacilityComparison(timeframe: string = 'realtime'): Promise<FacilityComparisonItem[]> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/facilities-comparison?timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/facilities-comparison?timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch facility comparison from backend.');
   return res.json();
 }
@@ -143,7 +157,7 @@ export async function fetchFacilityComparison(timeframe: string = 'realtime'): P
  * Fetches Billing & Revenue metrics
  */
 export async function fetchBillingIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/billing?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/billing?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch billing intelligence from backend.');
   return res.json();
 }
@@ -152,7 +166,7 @@ export async function fetchBillingIntelligence(facilityId: string = 'all', timef
  * Fetches Claims & Insurance metrics
  */
 export async function fetchClaimsIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/claims?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/claims?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch claims intelligence from backend.');
   return res.json();
 }
@@ -161,7 +175,7 @@ export async function fetchClaimsIntelligence(facilityId: string = 'all', timefr
  * Fetches Patient Operations metrics
  */
 export async function fetchPatientOpsIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/patient-ops?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/patient-ops?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch patient operations from backend.');
   return res.json();
 }
@@ -170,7 +184,7 @@ export async function fetchPatientOpsIntelligence(facilityId: string = 'all', ti
  * Fetches Doctor & Staff metrics
  */
 export async function fetchDoctorStaffIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/doctor-staff?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/doctor-staff?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch doctor staff intelligence from backend.');
   return res.json();
 }
@@ -179,7 +193,7 @@ export async function fetchDoctorStaffIntelligence(facilityId: string = 'all', t
  * Fetches Laboratory Diagnostics metrics
  */
 export async function fetchLaboratoryIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/laboratory?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/laboratory?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch laboratory intelligence from backend.');
   return res.json();
 }
@@ -188,7 +202,7 @@ export async function fetchLaboratoryIntelligence(facilityId: string = 'all', ti
  * Fetches Pharmacy & Inventory metrics
  */
 export async function fetchPharmacyInventoryIntelligence(facilityId: string = 'all', timeframe: string = 'realtime') {
-  const res = await fetch(`${API_BASE_URL}/dashboard/pharmacy-inventory?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/pharmacy-inventory?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch pharmacy inventory from backend.');
   return res.json();
 }
@@ -236,7 +250,7 @@ export interface FinancialIntelligenceResponse {
  * Fetches Financial Intelligence & P&L Statement metrics
  */
 export async function fetchFinancialIntelligence(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<FinancialIntelligenceResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/financial-intelligence?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/financial-intelligence?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch financial intelligence from backend.');
   return res.json();
 }
@@ -281,7 +295,7 @@ export interface SupplyChainResponse {
  * Fetches Supply Chain & Vendor Management metrics
  */
 export async function fetchSupplyChainVendors(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<SupplyChainResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/supply-chain-vendors?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/supply-chain-vendors?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch supply chain vendors from backend.');
   return res.json();
 }
@@ -370,7 +384,7 @@ export interface QualityComplianceResponse {
  * Fetches Quality & Regulatory Compliance metrics
  */
 export async function fetchQualityCompliance(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<QualityComplianceResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/quality-compliance?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/quality-compliance?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch quality compliance metrics from backend.');
   return res.json();
 }
@@ -444,7 +458,7 @@ export interface AIPredictiveResponse {
  * Fetches AI & Predictive Intelligence metrics from real dataset
  */
 export async function fetchAIPredictiveIntelligence(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<AIPredictiveResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/ai-predictive-intelligence?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/ai-predictive-intelligence?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch AI & predictive intelligence metrics from backend.');
   return res.json();
 }
@@ -489,7 +503,7 @@ export interface WorkflowAutomationResponse {
  * Fetches Workflow Automation Engine rules and detected trigger conditions
  */
 export async function fetchWorkflowAutomation(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<WorkflowAutomationResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/workflow-automation?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/workflow-automation?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch workflow automation metrics from backend.');
   return res.json();
 }
@@ -583,7 +597,7 @@ export interface PipelineStatusResponse {
  * Fetches real Data -> AI -> Automation Pipeline execution architecture and metrics
  */
 export async function fetchPipelineStatus(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<PipelineStatusResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/pipeline-status?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/pipeline-status?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch pipeline status from backend.');
   return res.json();
 }
@@ -593,7 +607,7 @@ export async function fetchPipelineStatus(facilityId: string = 'all', timeframe:
  * Executes a SQL query via backend Amazon Athena Query Engine
  */
 export async function executeAthenaQuery(sqlQuery: string, maxResults: number = 100): Promise<AthenaQueryResult> {
-  const res = await fetch(`${API_BASE_URL}/athena/execute`, {
+  const res = await apiFetch(`${API_BASE_URL}/athena/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sqlQuery, maxResults }),
@@ -609,7 +623,7 @@ export async function executeAthenaQuery(sqlQuery: string, maxResults: number = 
  * Fetches AWS Glue Data Catalog table metadata
  */
 export async function fetchGlueTables(): Promise<GlueTablesResponse> {
-  const res = await fetch(`${API_BASE_URL}/glue/tables`);
+  const res = await apiFetch(`${API_BASE_URL}/glue/tables`);
   if (!res.ok) throw new Error('Failed to fetch AWS Glue table catalog.');
   return res.json();
 }
@@ -618,7 +632,7 @@ export async function fetchGlueTables(): Promise<GlueTablesResponse> {
  * Sends natural language questions to Backend AI Copilot
  */
 export async function queryAICopilot(query: string, facilityId: string = 'all'): Promise<CopilotResponse> {
-  const res = await fetch(`${API_BASE_URL}/copilot/query`, {
+  const res = await apiFetch(`${API_BASE_URL}/copilot/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question: query, query, facility_id: facilityId, facilityId }),
@@ -691,7 +705,7 @@ export async function fetchOperationsDrilldown(
   if (department && department !== 'all') {
     url += `&department=${encodeURIComponent(department)}`;
   }
-  const res = await fetch(url);
+  const res = await apiFetch(url);
   if (!res.ok) throw new Error('Failed to fetch operations drilldown metrics from backend.');
   return res.json();
 }
@@ -730,7 +744,7 @@ export async function fetchMedicalCodingIntelligence(
   facilityId: string = 'all',
   timeframe: string = 'realtime'
 ): Promise<MedicalCodingResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/medical-coding?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/medical-coding?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch medical coding intelligence from backend.');
   return res.json();
 }
@@ -772,7 +786,7 @@ export async function fetchEmergencyCriticalIntelligence(
   facilityId: string = 'all',
   timeframe: string = 'realtime'
 ): Promise<EmergencyCriticalResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/emergency-critical?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/emergency-critical?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch emergency & critical intelligence from backend.');
   return res.json();
 }
@@ -817,7 +831,7 @@ export async function fetchPatientExperienceIntelligence(
   facilityId: string = 'all',
   timeframe: string = 'realtime'
 ): Promise<PatientExperienceResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/patient-experience?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/patient-experience?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch patient experience intelligence from backend.');
   return res.json();
 }
@@ -846,7 +860,7 @@ export interface SecurityGovernanceResponse {
 }
 
 export async function fetchSecurityGovernanceIntelligence(): Promise<SecurityGovernanceResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/security-governance`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/security-governance`);
   if (!res.ok) throw new Error('Failed to fetch security governance posture from backend.');
   return res.json();
 }
@@ -867,7 +881,7 @@ export interface IntegrationsStatusResponse {
 }
 
 export async function fetchIntegrationsStatus(): Promise<IntegrationsStatusResponse> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/integrations-status`);
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/integrations-status`);
   if (!res.ok) throw new Error('Failed to fetch integrations status from backend.');
   return res.json();
 }
@@ -879,7 +893,7 @@ export async function pingIntegrationEndpoint(name: string): Promise<{
   latency: string;
   message: string;
 }> {
-  const res = await fetch(`${API_BASE_URL}/dashboard/integrations-ping`, {
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/integrations-ping`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
