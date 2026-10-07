@@ -30,7 +30,7 @@ export const cognitoConfig: CognitoConfig = {
   region: (import.meta.env.VITE_COGNITO_REGION || 'us-east-1').trim(),
   userPoolId: (import.meta.env.VITE_COGNITO_USER_POOL_ID || 'us-east-1_fs4PnK0gh').trim(),
   domain: formattedDomain,
-  clientId: (import.meta.env.VITE_COGNITO_CLIENT_ID || '2411iehcindfsu1d77953or31u').trim(),
+  clientId: (import.meta.env.VITE_COGNITO_CLIENT_ID || '241i1ehcindfsu1d77953or31u').trim(),
   redirectUri: (
     import.meta.env.VITE_COGNITO_REDIRECT_URI || 
     'https://development-of-healthcare-operation.vercel.app/'
