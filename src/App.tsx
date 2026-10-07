@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { TimeframeOption, RoleType } from './types';
+import type { TimeframeOption } from './types';
 import { Header } from './components/layout/Header';
 import { Sidebar, type ModuleId } from './components/layout/Sidebar';
 import { AICopilotDrawer } from './components/copilot/AICopilotDrawer';
@@ -41,7 +41,6 @@ export const MedOpsDashboard: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ModuleId>('executive');
   const [selectedFacility, setSelectedFacility] = useState<string>('all');
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>('realtime');
-  const [selectedRole, setSelectedRole] = useState<RoleType>('Enterprise Executive');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   // Drawers & Modals
@@ -104,8 +103,6 @@ export const MedOpsDashboard: React.FC = () => {
         onFacilityChange={setSelectedFacility}
         selectedTimeframe={selectedTimeframe}
         onTimeframeChange={setSelectedTimeframe}
-        selectedRole={selectedRole}
-        onRoleChange={setSelectedRole}
         onToggleCopilot={() => setIsCopilotOpen(!isCopilotOpen)}
         isCopilotOpen={isCopilotOpen}
         powerBiMode={powerBiMode}
@@ -114,8 +111,6 @@ export const MedOpsDashboard: React.FC = () => {
           if (!powerBiMode) setActiveModule('powerbi-hub');
         }}
         onOpenKPIBuilder={() => setIsKPIBuilderOpen(true)}
-        onOpenAlertsModal={() => setIsAlertsOpen(true)}
-        unreadAlertCount={3}
       />
 
       {/* Main Layout Area */}

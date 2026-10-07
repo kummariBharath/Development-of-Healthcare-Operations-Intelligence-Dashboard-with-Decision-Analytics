@@ -5,13 +5,11 @@ import {
   UserCheck, 
   Bot, 
   LayoutDashboard, 
-  Bell, 
   Sliders, 
   Download,
-  Activity,
-  ShieldCheck
+  Activity
 } from 'lucide-react';
-import type { TimeframeOption, RoleType } from '../../types';
+import type { TimeframeOption } from '../../types';
 import { facilitiesData } from '../../data/mockData';
 import { fetchFacilities, type Facility } from '../../services/apiService';
 import { UserAccountMenu } from '../auth/UserAccountMenu';
@@ -21,15 +19,11 @@ interface HeaderProps {
   onFacilityChange: (id: string) => void;
   selectedTimeframe: TimeframeOption;
   onTimeframeChange: (tf: TimeframeOption) => void;
-  selectedRole: RoleType;
-  onRoleChange: (role: RoleType) => void;
   onToggleCopilot: () => void;
   isCopilotOpen: boolean;
   powerBiMode: boolean;
   onTogglePowerBi: () => void;
   onOpenKPIBuilder: () => void;
-  onOpenAlertsModal: () => void;
-  unreadAlertCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,15 +31,11 @@ export const Header: React.FC<HeaderProps> = ({
   onFacilityChange,
   selectedTimeframe,
   onTimeframeChange,
-  selectedRole,
-  onRoleChange,
   onToggleCopilot,
   isCopilotOpen,
   powerBiMode,
   onTogglePowerBi,
-  onOpenKPIBuilder,
-  onOpenAlertsModal,
-  unreadAlertCount
+  onOpenKPIBuilder
 }) => {
   const [facilities, setFacilities] = React.useState<Facility[]>(facilitiesData);
 
@@ -118,24 +108,6 @@ export const Header: React.FC<HeaderProps> = ({
             <option value="ytd" className="bg-slate-900">Year to Date (YTD)</option>
           </select>
         </div>
-
-        {/* Role Switcher (RBAC) */}
-        <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-slate-500 text-[11px]">Role:</span>
-          <select
-            value={selectedRole}
-            onChange={(e) => onRoleChange(e.target.value as RoleType)}
-            className="bg-transparent text-emerald-400 font-semibold border-none outline-none cursor-pointer"
-          >
-            <option value="Enterprise Executive" className="bg-slate-900">Enterprise Executive</option>
-            <option value="Chief Medical Officer" className="bg-slate-900">Chief Medical Officer (CMO)</option>
-            <option value="Chief Financial Officer" className="bg-slate-900">Chief Financial Officer (CFO)</option>
-            <option value="Billing & Claims Lead" className="bg-slate-900">Billing & Claims Lead</option>
-            <option value="Operations Director" className="bg-slate-900">Operations Director</option>
-            <option value="Compliance Officer" className="bg-slate-900">Compliance Officer</option>
-          </select>
-        </div>
       </div>
 
       {/* Header Actions & Mode Toggles */}
@@ -162,20 +134,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Sliders className="w-3.5 h-3.5 text-cyan-400" />
           <span className="hidden md:inline">KPI Builder</span>
-        </button>
-
-        {/* Live Alerts Notification Feed */}
-        <button
-          onClick={onOpenAlertsModal}
-          className="relative p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition"
-          title="Operational Exception Alerts"
-        >
-          <Bell className="w-4 h-4 text-amber-400" />
-          {unreadAlertCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center animate-bounce">
-              {unreadAlertCount}
-            </span>
-          )}
         </button>
 
         {/* Dedicated AI Agent Copilot Drawer Trigger */}
