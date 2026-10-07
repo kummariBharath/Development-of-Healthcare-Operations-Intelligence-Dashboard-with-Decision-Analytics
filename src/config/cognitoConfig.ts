@@ -18,7 +18,7 @@ export interface CognitoConfig {
 // Clean trailing slash from domain if present
 const rawDomain = (
   import.meta.env.VITE_COGNITO_DOMAIN || 
-  'https://us-east-1fs4pnk0gh.auth.us-east-1.amazoncognito.com'
+  'https://us-east-1fs4pnkogh.auth.us-east-1.amazoncognito.com'
 ).trim().replace(/\/+$/, '');
 
 // Ensure domain starts with https://
