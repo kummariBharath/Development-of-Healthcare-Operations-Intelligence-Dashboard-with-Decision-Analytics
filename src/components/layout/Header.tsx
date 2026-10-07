@@ -5,7 +5,6 @@ import {
   UserCheck, 
   Bot, 
   LayoutDashboard, 
-  Sliders, 
   Download,
   Activity
 } from 'lucide-react';
@@ -23,7 +22,6 @@ interface HeaderProps {
   isCopilotOpen: boolean;
   powerBiMode: boolean;
   onTogglePowerBi: () => void;
-  onOpenKPIBuilder: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,8 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleCopilot,
   isCopilotOpen,
   powerBiMode,
-  onTogglePowerBi,
-  onOpenKPIBuilder
+  onTogglePowerBi
 }) => {
   const [facilities, setFacilities] = React.useState<Facility[]>(facilitiesData);
 
@@ -124,16 +121,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden sm:inline">Analytics Mode</span>
-        </button>
-
-        {/* Custom KPI Builder Modal trigger */}
-        <button
-          onClick={onOpenKPIBuilder}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-medium transition"
-          title="Open Custom KPI Builder"
-        >
-          <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="hidden md:inline">KPI Builder</span>
         </button>
 
         {/* Dedicated AI Agent Copilot Drawer Trigger */}

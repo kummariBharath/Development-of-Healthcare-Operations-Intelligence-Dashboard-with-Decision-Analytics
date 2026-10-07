@@ -4,7 +4,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   AlertCircle, 
-  Sparkles, 
   ArrowUpRight, 
   Users, 
   DollarSign, 
@@ -12,7 +11,6 @@ import {
   FileCheck, 
   ChevronRight,
   Filter,
-  CheckCircle2,
   Database
 } from 'lucide-react';
 import { revenueByDeptTrend } from '../../data/mockData';
@@ -41,7 +39,6 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
   const [facilitiesComp, setFacilitiesComp] = useState<FacilityComparisonItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [summaryGenerated, setSummaryGenerated] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,22 +87,21 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
         </div>
       </div>
 
-      {/* Top Banner: Enterprise Operational Health Index & AI Executive Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Operational Health Score Gauge Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div>
-            <div className="flex items-center justify-between mb-3">
+      {/* Top Banner: Enterprise Operational Health Index */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-3">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Operational Health Index
               </span>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full">
+              <span className="px-2.5 py-0.5 text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full">
                 {loading ? 'CALCULATING...' : 'LIVE ATHENA SCORE'}
               </span>
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-extrabold text-white tracking-tight">
+              <span className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
                 {loading ? '--' : (kpis[0]?.value.split('/')[0].trim() || '88.5')}
               </span>
               <span className="text-sm text-slate-400 font-mono">/ 100</span>
@@ -113,64 +109,21 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
                 <TrendingUp className="w-3.5 h-3.5 mr-1" /> +3.5%
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               Composite index dynamically calculated from Amazon Athena across Admissions, Net Revenue, ED Waiting Times, and Claim Denial Rates.
             </p>
           </div>
 
           {/* Health Score Meter Bar */}
-          <div className="mt-4 space-y-1.5">
-            <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-              <span>Target: 92.0</span>
+          <div className="w-full lg:w-80 space-y-2 bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl shrink-0">
+            <div className="flex justify-between text-xs text-slate-400 font-medium">
+              <span>Benchmark Target: 92.0</span>
               <span className="text-cyan-400 font-semibold">{kpis[0]?.value || '88.5 / 100'}</span>
             </div>
-            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
               <div className="h-full bg-gradient-to-r from-teal-500 via-cyan-400 to-emerald-400 rounded-full w-[88.5%]" />
             </div>
-          </div>
-        </div>
-
-        {/* AI-Generated Executive Summary Card */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/40 border border-cyan-900/40 rounded-2xl p-5 relative">
-          <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400 animate-spin-slow" />
-              <h3 className="text-sm font-bold text-white">Amazon Bedrock AI Executive Digest</h3>
-            </div>
-            <button
-              onClick={() => setSummaryGenerated(!summaryGenerated)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-[11px] font-medium transition"
-            >
-              <Sparkles className="w-3 h-3" />
-              {summaryGenerated ? 'Re-Synthesize Digest' : 'Generate Real-Time Digest'}
-            </button>
-          </div>
-
-          <div className="space-y-2.5 text-xs text-slate-300 leading-relaxed">
-            <p>
-              <strong className="text-cyan-300">Operational Overview:</strong> Querying AWS Glue catalog database <span className="font-mono text-cyan-400">medical_operations_db</span>. Total admissions recorded in selection scope: <span className="text-white font-semibold">{rawMetrics ? rawMetrics.totalAdmissions.toLocaleString() : 'Loading...'}</span> with an average length of stay of <span className="text-white font-semibold">{rawMetrics ? rawMetrics.avgLOS : '--'} days</span>.
-            </p>
-            <p>
-              <strong className="text-cyan-300">Financial & RCM Highlight:</strong> Net Revenue aggregated from Athena billing table is <span className="text-emerald-400 font-semibold">{rawMetrics ? `₹${(rawMetrics.totalRevenue / 1e6).toFixed(2)}M` : 'Loading...'}</span>. The current Claim Denial Rate across processed claims is <span className="text-emerald-400 font-semibold">{rawMetrics ? `${rawMetrics.denialRate}%` : '--'}</span>.
-            </p>
-            <p>
-              <strong className="text-amber-300">Emergency & Throughput:</strong> Average Emergency Department waiting time is <span className="text-amber-300 font-semibold">{rawMetrics ? `${rawMetrics.avgEDWait} mins` : '--'}</span> across active network facilities. Bed occupancy stands at <span className="text-cyan-300 font-semibold">{rawMetrics ? `${rawMetrics.occupancyRate}%` : '--'}</span>.
-            </p>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={() => onExecuteAction('dispatch-evs-flow', { facility: selectedFacility })}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-semibold transition"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Dispatch Automated Bed Turnaround Task
-            </button>
-            <button
-              onClick={() => onExecuteAction('download-executive-report')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
-            >
-              Export PDF Scorecard
-            </button>
+            <span className="text-[10px] text-slate-500 block text-right font-mono">Status: Optimal Performance</span>
           </div>
         </div>
       </div>

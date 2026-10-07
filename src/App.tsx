@@ -110,7 +110,6 @@ export const MedOpsDashboard: React.FC = () => {
           setPowerBiMode(!powerBiMode);
           if (!powerBiMode) setActiveModule('powerbi-hub');
         }}
-        onOpenKPIBuilder={() => setIsKPIBuilderOpen(true)}
       />
 
       {/* Main Layout Area */}
