@@ -25,7 +25,6 @@ import { PowerBIDashboardHub } from './components/modules/PowerBIDashboardHub';
 import { SecurityGovernance } from './components/modules/SecurityGovernance';
 import { IntegrationsHub } from './components/modules/IntegrationsHub';
 import { AutomationPipelineVisualizer } from './components/modules/AutomationPipelineVisualizer';
-import { AWSCloudServicesHub } from './components/modules/AWSCloudServicesHub';
 
 // Modals
 import { EnterpriseDrilldownModal } from './components/modals/EnterpriseDrilldownModal';
@@ -249,10 +248,6 @@ export const MedOpsDashboard: React.FC = () => {
               selectedTimeframe={selectedTimeframe}
               onExecuteAction={handleExecuteAction}
             />
-          )}
-
-          {activeModule === 'aws-cloud-hub' && (
-            <AWSCloudServicesHub onExecuteAction={handleExecuteAction} />
           )}
         </main>
       </div>

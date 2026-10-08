@@ -17,10 +17,9 @@ import {
   TrendingUp, 
   Bot, 
   LayoutDashboard, 
-  Lock, 
-  Cable, 
+  Lock,
+  Cable,
   Cpu,
-  Cloud,
   ChevronRight
 } from 'lucide-react';
 
@@ -44,8 +43,7 @@ export type ModuleId =
   | 'powerbi-hub'
   | 'security-gov'
   | 'integrations-hub'
-  | 'automation-pipeline'
-  | 'aws-cloud-hub';
+  | 'automation-pipeline';
 
 interface SidebarProps {
   activeModule: ModuleId;
@@ -109,7 +107,6 @@ const navGroups: NavGroup[] = [
       { id: 'powerbi-hub', label: 'Executive Analytics Hub', icon: LayoutDashboard },
       { id: 'security-gov', label: 'Security & Governance', icon: Lock },
       { id: 'integrations-hub', label: 'Enterprise Integrations Hub', icon: Cable },
-      { id: 'aws-cloud-hub', label: 'AWS Cloud Services', icon: Cloud },
     ],
   },
 ];
