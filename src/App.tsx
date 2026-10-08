@@ -62,22 +62,20 @@ export const MedOpsDashboard: React.FC = () => {
   };
 
   const handleExecuteAction = (actionId: string, payload?: any) => {
-    let actionDesc = `Executed action: ${actionId}`;
-    if (actionId === 'trigger-auth-followup') actionDesc = '⚡ Triggered Automated Claim Authorization Follow-Up via EDI 278';
-    else if (actionId === 'reassign-shift-kim') actionDesc = '📅 Re-assigned Cardiology Shift to Dr. David Kim';
-    else if (actionId === 'dispatch-evs') actionDesc = '🧹 Dispatched Environmental Services (EVS) Bed Cleanup to Floor 3';
-    else if (actionId === 'reroute-lab') actionDesc = '🧪 Rerouted STAT Blood Culture Samples to Northwest Diagnostic Center';
-    else if (actionId === 'hold-denial-claims') actionDesc = '🛡️ Placed 14 High Denial Risk Claims on Pre-Submission Audit Hold';
-    else if (actionId === 'download-ops-pdf') actionDesc = '📄 Generating Enterprise PDF Operations Digest...';
-    else if (actionId === 'patient-registered') actionDesc = `✅ Onboarded Patient ${payload?.name || ''} to ${payload?.dept || ''} Queue`;
-    else if (actionId === 'workflow-rule-created') actionDesc = `🤖 Created Automated Workflow Rule "${payload?.name || ''}"`;
-    else if (actionId === 'generate-po') actionDesc = `🛒 Generated Automated Purchase Order for ${payload?.vendor || 'Vendor'}`;
-    else if (actionId === 'export-analytics-pdf' || actionId === 'export-powerbi-pdf') actionDesc = `📄 Exported ${payload?.report || 'Executive Analytics'} Report to PDF`;
-    else if (actionId === 'export-analytics-excel' || actionId === 'export-powerbi-excel') actionDesc = `📊 Exported ${payload?.report || 'Executive Analytics'} Data to Excel`;
-    else if (actionId === 'refresh-analytics-dataset' || actionId === 'refresh-powerbi-dataset') actionDesc = '🔄 Refreshed Enterprise Semantic Data Analytics Model';
-    else if (actionId === 'pipeline-simulation-completed') actionDesc = '🎉 Closed-Loop Data → AI → Decision → Automation Pipeline Executed Successfully!';
-    else if (actionId === 'run-athena-query') actionDesc = '⚡ Executed SQL Query on AWS Athena via AWS Glue Data Catalog!';
-    else if (actionId === 'trigger-glue-crawler-rescan') actionDesc = '🕷️ AWS Glue Crawler triggered: Re-scanning s3://medical-operations-core-v9-100k';
+    let actionDesc = `Action logged: ${actionId}`;
+    if (actionId === 'run-athena-query') {
+      actionDesc = `Executed SQL Query on AWS Athena via AWS Glue Data Catalog (ID: ${payload?.queryExecutionId || 'active'})`;
+    } else if (actionId === 'pipeline-verification-requested') {
+      actionDesc = 'Verified Closed-Loop Data Pipeline Status with Backend Services';
+    } else if (actionId === 'workflow-rule-evaluated') {
+      actionDesc = `Evaluated Workflow Rule "${payload?.ruleId || ''}" against Live Dataset (${payload?.triggeredCount ?? 0} matches)`;
+    } else if (actionId === 'export-analytics-pdf' || actionId === 'export-powerbi-pdf') {
+      actionDesc = `Generated ${payload?.report || 'Operations'} Digest Document`;
+    } else if (actionId === 'export-analytics-excel' || actionId === 'export-powerbi-excel') {
+      actionDesc = `Exported ${payload?.report || 'Operations'} Data to Spreadsheet`;
+    } else if (actionId === 'refresh-analytics-dataset' || actionId === 'refresh-powerbi-dataset') {
+      actionDesc = 'Refreshed Operational Metrics Model';
+    }
 
     triggerToast(actionDesc);
   };
@@ -274,14 +272,12 @@ export const MedOpsDashboard: React.FC = () => {
       <CustomKPIBuilderModal
         isOpen={isKPIBuilderOpen}
         onClose={() => setIsKPIBuilderOpen(false)}
-        onSaveKPI={(kpi) => triggerToast(`Added Custom KPI "${kpi.title}" to Command Center`)}
       />
 
       {/* Live Alerts Notification Drawer Modal */}
       <AlertsModal
         isOpen={isAlertsOpen}
         onClose={() => setIsAlertsOpen(false)}
-        onExecuteAction={handleExecuteAction}
       />
     </div>
   );

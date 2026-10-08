@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+ecs-infrastructure-trust-policy.json
+ecs-task-permissions-policy.json
+ecs-task-role-trust-policy.json
+ecs-task-trust-policy.json
+policy-v2.json
+policy.json
+# Python generated files
+__pycache__/
+*.pyc

@@ -109,12 +109,11 @@ export const BillingRevenueIntelligence: React.FC<BillingRevenueIntelligenceProp
           </p>
         </div>
 
-        <button
-          onClick={() => onExecuteAction('trigger-revenue-reconciliation')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-emerald-950/50"
-        >
-          <CheckCircle className="w-4 h-4" /> Run Automated Revenue Leakage Scan
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="text-slate-400 font-medium">Reconciliation:</span>
+          <span className="text-slate-200 font-semibold">Continuous Analytics</span>
+        </div>
       </div>
 
       {/* Top Financial Summary KPI Grid */}

@@ -111,12 +111,11 @@ export const InsuranceClaimsAutomation: React.FC<InsuranceClaimsAutomationProps>
           </p>
         </div>
 
-        <button
-          onClick={() => onExecuteAction('trigger-bulk-claims-submission')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-950/50"
-        >
-          <Send className="w-4 h-4" /> Submit Clean Claims Batch
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+          <span className="text-slate-400 font-medium">Outbound Clearinghouse:</span>
+          <span className="text-slate-200 font-semibold">Monitoring Only</span>
+        </div>
       </div>
 
       {/* KPI Cards */}

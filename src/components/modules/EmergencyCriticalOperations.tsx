@@ -92,12 +92,11 @@ export const EmergencyCriticalOperations: React.FC<EmergencyCriticalOperationsPr
           </p>
         </div>
 
-        <button
-          onClick={() => onExecuteAction('trigger-code-red-protocol')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-950/50"
-        >
-          <Zap className="w-4 h-4" /> Trigger Surge Protocol
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="text-slate-400 font-medium">Surge Protocol:</span>
+          <span className="text-slate-200 font-semibold">Standby (No Automated Dispatch Gateway)</span>
+        </div>
       </div>
 
       {/* Honest Bed Inventory Disclaimer */}

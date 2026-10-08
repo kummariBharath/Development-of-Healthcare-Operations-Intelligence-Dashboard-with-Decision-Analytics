@@ -387,13 +387,12 @@ export const QualityCompliance: React.FC<QualityComplianceProps> = ({
                       <th className="py-3 px-3">Severity</th>
                       <th className="py-3 px-3">Status</th>
                       <th className="py-3 px-3">Corrective Action (CAPA)</th>
-                      <th className="py-3 px-3 text-right">Details</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {filteredIncidents.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-500 font-sans">
+                        <td colSpan={6} className="py-8 text-center text-slate-500 font-sans">
                           No quality incidents match the filter criteria.
                         </td>
                       </tr>
@@ -456,14 +455,6 @@ export const QualityCompliance: React.FC<QualityComplianceProps> = ({
                                 {row.correctiveActionRequired === 'Yes' ? 'CAPA Pending' : 'None Required'}
                               </span>
                             )}
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            <button
-                              onClick={() => onExecuteAction?.('view-incident-details', { incidentId: row.incidentId })}
-                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] rounded transition font-sans"
-                            >
-                              Inspect
-                            </button>
                           </td>
                         </tr>
                       ))

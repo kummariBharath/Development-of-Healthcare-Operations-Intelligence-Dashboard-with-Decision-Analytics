@@ -105,12 +105,11 @@ export const LaboratoryDiagnostics: React.FC<LaboratoryDiagnosticsProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => onExecuteAction('dispatch-stat-lab-alerts')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-950/50"
-        >
-          <BellRing className="w-4 h-4" /> Dispatch STAT Abnormal Result Alerts
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+          <span className="w-2 h-2 rounded-full bg-amber-400" />
+          <span className="text-slate-400 font-medium">STAT Alert Dispatch:</span>
+          <span className="text-slate-200 font-semibold">Detection Mode (Gateway Standby)</span>
+        </div>
       </div>
 
       {/* KPI Cards */}

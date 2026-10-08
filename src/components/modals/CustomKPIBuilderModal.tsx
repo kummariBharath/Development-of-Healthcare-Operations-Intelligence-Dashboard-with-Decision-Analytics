@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { X, Sliders, Plus, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Sliders, Info } from 'lucide-react';
 
 interface CustomKPIBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveKPI: (kpi: any) => void;
+  onSaveKPI?: (kpi: any) => void;
 }
 
 export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
   isOpen,
-  onClose,
-  onSaveKPI
+  onClose
 }) => {
   const [title, setTitle] = useState('');
   const [formula, setFormula] = useState('SUM(Revenue) / COUNT(Encounters)');
@@ -18,23 +17,6 @@ export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
   const [category, setCategory] = useState('Finance');
 
   if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    onSaveKPI({
-      title,
-      value: 'Custom Live',
-      change: 4.2,
-      status: 'positive',
-      target,
-      category
-    });
-
-    setTitle('');
-    onClose();
-  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -48,16 +30,23 @@ export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
+          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <span>
+            Custom KPI persistence is currently in development / read-only preview. User-defined semantic formulas cannot be committed to the database in this environment.
+          </span>
+        </div>
+
+        <div className="space-y-3 text-xs opacity-75">
           <div>
             <label className="text-slate-400 block mb-1">KPI Title</label>
             <input
               type="text"
-              required
+              disabled
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Net Margin per Cardiac Encounters"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-cyan-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 outline-none cursor-not-allowed"
             />
           </div>
 
@@ -65,9 +54,10 @@ export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
             <label className="text-slate-400 block mb-1">Semantic DAX / SQL Formula</label>
             <input
               type="text"
+              disabled
               value={formula}
               onChange={(e) => setFormula(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 font-mono outline-none focus:border-cyan-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 font-mono outline-none cursor-not-allowed"
             />
           </div>
 
@@ -75,18 +65,20 @@ export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
             <label className="text-slate-400 block mb-1">Target Benchmark</label>
             <input
               type="text"
+              disabled
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-cyan-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 outline-none cursor-not-allowed"
             />
           </div>
 
           <div>
             <label className="text-slate-400 block mb-1">Pillar Category</label>
             <select
+              disabled
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-cyan-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 outline-none cursor-not-allowed"
             >
               <option value="Operations">Operations</option>
               <option value="Finance">Finance</option>
@@ -101,16 +93,17 @@ export const CustomKPIBuilderModal: React.FC<CustomKPIBuilderModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition"
             >
-              Cancel
+              Close
             </button>
             <button
-              type="submit"
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition"
+              type="button"
+              disabled
+              className="px-4 py-2 bg-slate-800/80 text-slate-500 font-semibold rounded-xl cursor-not-allowed border border-slate-700/50"
             >
-              Add KPI to Command Scorecard
+              Persistence Disabled (Preview)
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

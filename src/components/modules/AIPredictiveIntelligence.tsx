@@ -348,12 +348,9 @@ export const AIPredictiveIntelligence: React.FC<AIPredictiveIntelligenceProps> =
 
                 <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
                   <span>Primary Delay Factor: Inpatient Bed Transfer Coordination</span>
-                  <button
-                    onClick={() => onExecuteAction?.('view-patient-flow', { facility: selectedFacility })}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded transition font-medium"
-                  >
-                    Inspect Flow Logistics
-                  </button>
+                  <span className="font-mono text-cyan-400 text-[10px] bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
+                    Bottleneck Analytics Active
+                  </span>
                 </div>
               </div>
             </div>
