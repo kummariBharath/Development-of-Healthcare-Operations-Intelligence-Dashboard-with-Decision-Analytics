@@ -38,7 +38,7 @@ export const UserAccountMenu: React.FC = () => {
 
   const primaryGroup = user.groups && user.groups.length > 0 
     ? user.groups[0] 
-    : 'Specialist';
+    : 'NO ROLE';
 
   return (
     <div className="relative" ref={menuRef}>
@@ -134,14 +134,10 @@ export const UserAccountMenu: React.FC = () => {
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 rounded-lg">
                   <UserIcon className="w-3 h-3 text-slate-400" />
-                  Authenticated Specialist
+                  Role Not Assigned
                 </span>
               )}
             </div>
-
-            <p className="text-[11px] text-slate-400 leading-normal pt-1">
-              Complete MedOps intelligence access: All 21 modules, live data queries, and AI Copilot are fully operational.
-            </p>
           </div>
 
           {/* User Pool & Infrastructure Info */}
