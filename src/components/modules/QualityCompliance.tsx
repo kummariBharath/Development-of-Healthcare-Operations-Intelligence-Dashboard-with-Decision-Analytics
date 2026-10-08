@@ -113,7 +113,7 @@ export const QualityCompliance: React.FC<QualityComplianceProps> = ({
             </h2>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-[11px] font-medium text-slate-300">
               <Database className="w-3 h-3 text-cyan-400" />
-              <span>Data Source: <strong className="text-cyan-300">{data?.source || 'Local Dataset'}</strong></span>
+              <span>Data Source: <strong className="text-cyan-300">{loading ? 'Connecting to Amazon Athena...' : (data?.source || 'Local Fallback')}</strong></span>
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">

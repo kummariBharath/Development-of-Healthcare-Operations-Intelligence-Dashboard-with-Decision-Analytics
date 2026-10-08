@@ -55,7 +55,7 @@ export const FinancialIntelligence: React.FC<FinancialIntelligenceProps> = ({
   const kpis = data?.kpis;
   const pnlData = data?.pnlStatement || [];
   const expenseCategories = data?.expenseCategories || [];
-  const dataSource = data?.source || 'Local Dataset';
+  const dataSource = loading ? 'Connecting to Amazon Athena...' : (data?.source || 'Local Fallback');
 
   return (
     <div className="space-y-6">
@@ -91,7 +91,7 @@ export const FinancialIntelligence: React.FC<FinancialIntelligenceProps> = ({
       {loading && (
         <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-400 text-sm animate-pulse space-y-2">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto text-cyan-400" />
-          <p>Calculating real P&L financials from dataset ({dataSource})...</p>
+          <p>Loading financial intelligence from Amazon Athena...</p>
         </div>
       )}
 

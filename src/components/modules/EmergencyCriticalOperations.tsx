@@ -57,7 +57,7 @@ export const EmergencyCriticalOperations: React.FC<EmergencyCriticalOperationsPr
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-slate-900 border border-slate-800 rounded-2xl min-h-[400px]">
         <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
-        <p className="text-sm font-medium text-slate-300">Loading emergency & critical care analytics from backend dataset...</p>
+        <p className="text-sm font-medium text-slate-300">Loading emergency & critical care analytics from Amazon Athena...</p>
       </div>
     );
   }
@@ -84,7 +84,7 @@ export const EmergencyCriticalOperations: React.FC<EmergencyCriticalOperationsPr
               <Siren className="w-5 h-5 text-rose-500 animate-pulse" /> Emergency & Critical Operations Center
             </h2>
             <span className="px-2.5 py-0.5 text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono font-bold rounded-full">
-              {data.dataSource || 'Local Dataset (CSV Fallback)'}
+              {data.dataSource || 'Local Fallback'}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">

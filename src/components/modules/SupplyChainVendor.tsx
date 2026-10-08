@@ -56,7 +56,7 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
 
   const kpis = data?.kpis;
   const vendors = data?.vendors || [];
-  const dataSource = data?.source || 'Local Dataset';
+  const dataSource = loading ? 'Connecting to Amazon Athena...' : (data?.source || 'Local Fallback');
 
   const filteredVendors = vendors.filter((v) => {
     const matchesSearch = 
@@ -105,7 +105,7 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
       {loading && (
         <div className="p-8 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-400 text-sm animate-pulse space-y-2">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto text-cyan-400" />
-          <p>Loading real supply chain vendor performance from dataset ({dataSource})...</p>
+          <p>Loading supply chain vendor analytics from Amazon Athena...</p>
         </div>
       )}
 

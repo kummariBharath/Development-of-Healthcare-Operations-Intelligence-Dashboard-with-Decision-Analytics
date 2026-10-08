@@ -147,11 +147,13 @@ export const AutomationPipelineVisualizer: React.FC<AutomationPipelineVisualizer
               Data → AI → Auto Pipeline Architecture & Execution Monitor
             </h2>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold border ${
-              isAthena 
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700' 
-                : 'bg-amber-950/80 text-amber-300 border-amber-700'
+              loading
+                ? 'bg-cyan-950/80 text-cyan-300 border-cyan-700'
+                : isAthena
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700'
+                  : 'bg-amber-950/80 text-amber-300 border-amber-700'
             }`}>
-              {isAthena ? '● AWS Athena Live Engine' : '● Local Dataset Fallback Active'}
+              {loading ? '● Connecting to Amazon Athena...' : isAthena ? '● AWS Athena Live Engine' : '● Local Fallback Active'}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">

@@ -29,22 +29,29 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
   const [activeReport, setActiveReport] = useState('Executive Overview');
   const [viewDevice, setViewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [execData, setExecData] = useState<any>(null);
   const [claimsData, setClaimsData] = useState<any>(null);
   const [edData, setEdData] = useState<any>(null);
 
-  const loadAllAnalytics = () => {
+  const loadAllAnalytics = async () => {
     setLoading(true);
-    Promise.all([
-      fetchExecutiveSummary(selectedFacility, selectedTimeframe).catch(() => null),
-      fetchClaimsIntelligence(selectedFacility, selectedTimeframe).catch(() => null),
-      fetchEmergencyCriticalIntelligence(selectedFacility, selectedTimeframe).catch(() => null)
-    ]).then(([exec, claims, ed]) => {
+    setError(null);
+    try {
+      const [exec, claims, ed] = await Promise.all([
+        fetchExecutiveSummary(selectedFacility, selectedTimeframe),
+        fetchClaimsIntelligence(selectedFacility, selectedTimeframe),
+        fetchEmergencyCriticalIntelligence(selectedFacility, selectedTimeframe)
+      ]);
       setExecData(exec);
       setClaimsData(claims);
       setEdData(ed);
+    } catch (err: any) {
+      console.error('Failed to load executive analytics hub metrics:', err);
+      setError(err.message || 'Unable to load cross-domain analytics tiles from the backend');
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   useEffect(() => {
@@ -61,7 +68,7 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
               <LayoutDashboard className="w-5 h-5 text-amber-400" /> Executive Analytics & Reporting Hub
             </h2>
             <span className="px-2.5 py-0.5 text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono font-bold rounded-full">
-              Real Dataset Connected
+              {loading ? 'Connecting...' : (execData?.source || 'Live Engine Connected')}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
@@ -129,7 +136,7 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Data Engine</span>
-              <span className="text-emerald-400 font-semibold">Local CSV (FastAPI)</span>
+              <span className="text-emerald-400 font-semibold">{execData?.source || 'Amazon Athena / FastAPI'}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Dataset Status</span>
@@ -140,7 +147,19 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center p-12 min-h-[200px]">
               <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
-              <p className="text-xs text-slate-400">Loading cross-domain analytics tiles...</p>
+              <p className="text-xs text-slate-400">Loading cross-domain analytics tiles from Amazon Athena...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-rose-950/30 border border-rose-800/50 rounded-xl text-rose-300 text-center min-h-[200px] space-y-2">
+              <AlertTriangle className="w-8 h-8 text-rose-400 mb-1" />
+              <h4 className="text-sm font-bold text-white">Cross-Domain Analytics Unavailable</h4>
+              <p className="text-xs text-rose-200 max-w-sm">{error}</p>
+              <button
+                onClick={loadAllAnalytics}
+                className="mt-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold rounded-lg transition flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3 h-3" /> Retry Request
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
@@ -149,17 +168,21 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Total Billed Revenue</span>
                     <span className="text-3xl font-extrabold text-emerald-400 font-mono my-2">
-                      {execData?.kpis?.totalRevenueFormatted || '$38.25 M'}
+                      {execData?.rawMetrics?.totalRevenue != null
+                        ? (execData.rawMetrics.totalRevenue >= 1e6 ? `₹${(execData.rawMetrics.totalRevenue / 1e6).toFixed(2)} M` : `₹${(execData.rawMetrics.totalRevenue / 1e3).toFixed(1)} K`)
+                        : (execData?.kpis?.find((k: any) => k.title?.includes('Revenue'))?.value || 'Unavailable')}
                     </span>
-                    <span className="text-[10px] text-slate-500">From billing.csv actuals</span>
+                    <span className="text-[10px] text-slate-500">From billing records ({execData?.source || 'Analytics Engine'})</span>
                   </div>
 
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Total Patient Encounters</span>
                     <span className="text-3xl font-extrabold text-cyan-400 font-mono my-2">
-                      {execData?.kpis?.totalAdmissions?.toLocaleString() || '14,628'}
+                      {execData?.rawMetrics?.totalAdmissions != null
+                        ? execData.rawMetrics.totalAdmissions.toLocaleString()
+                        : (execData?.kpis?.find((k: any) => k.title?.includes('Admissions'))?.value || 'Unavailable')}
                     </span>
-                    <span className="text-[10px] text-slate-500">From admissions.csv & appointments.csv</span>
+                    <span className="text-[10px] text-slate-500">From admissions & encounters</span>
                   </div>
 
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
@@ -167,7 +190,7 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
                     <span className="text-3xl font-extrabold text-amber-400 font-mono my-2">
                       5 Facilities
                     </span>
-                    <span className="text-[10px] text-slate-500">60 Physicians across network</span>
+                    <span className="text-[10px] text-slate-500">Network healthcare branches</span>
                   </div>
                 </>
               )}
@@ -177,15 +200,15 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Total Evaluated Claims</span>
                     <span className="text-3xl font-extrabold text-cyan-400 font-mono my-2">
-                      {claimsData?.totalClaims?.toLocaleString() || '5,873'}
+                      {claimsData?.totalClaims != null ? claimsData.totalClaims.toLocaleString() : 'Unavailable'}
                     </span>
-                    <span className="text-[10px] text-slate-500">From claims.csv</span>
+                    <span className="text-[10px] text-slate-500">From claims dataset</span>
                   </div>
 
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Total Claimed Value</span>
                     <span className="text-3xl font-extrabold text-emerald-400 font-mono my-2">
-                      {claimsData?.totalClaimedAmountFormatted || '$5.37 M'}
+                      {claimsData?.totalClaimedAmountFormatted || (claimsData?.totalClaimedAmount != null ? `₹${(claimsData.totalClaimedAmount / 1e6).toFixed(2)} M` : 'Unavailable')}
                     </span>
                     <span className="text-[10px] text-slate-500">Aggregated claim submissions</span>
                   </div>
@@ -193,9 +216,9 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Overall Denial Rate</span>
                     <span className="text-3xl font-extrabold text-rose-400 font-mono my-2">
-                      {claimsData?.denialRate != null ? `${claimsData.denialRate}%` : '11.7%'}
+                      {claimsData?.denialRate != null ? `${claimsData.denialRate}%` : 'Unavailable'}
                     </span>
-                    <span className="text-[10px] text-slate-500">True claims.csv denial rate</span>
+                    <span className="text-[10px] text-slate-500">Calculated claims denial rate</span>
                   </div>
                 </>
               )}
@@ -205,23 +228,23 @@ export const PowerBIDashboardHub: React.FC<PowerBIDashboardHubProps> = ({
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Emergency Visits</span>
                     <span className="text-3xl font-extrabold text-white font-mono my-2">
-                      {edData?.totalVisits?.toLocaleString() || '2,960'}
+                      {edData?.totalVisits != null ? edData.totalVisits.toLocaleString() : 'Unavailable'}
                     </span>
-                    <span className="text-[10px] text-slate-500">From emergency_visits.csv</span>
+                    <span className="text-[10px] text-slate-500">From emergency visit logs</span>
                   </div>
 
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">Mean Door-to-Doctor</span>
                     <span className="text-3xl font-extrabold text-cyan-400 font-mono my-2">
-                      {edData?.meanWaitMinutes != null ? `${edData.meanWaitMinutes} Mins` : '44.8 Mins'}
+                      {edData?.meanWaitMinutes != null ? `${edData.meanWaitMinutes} Mins` : 'Unavailable'}
                     </span>
-                    <span className="text-[10px] text-slate-500">True average triage waiting time</span>
+                    <span className="text-[10px] text-slate-500">Average triage waiting time</span>
                   </div>
 
                   <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
                     <span className="text-xs font-bold text-slate-300">ED Admission Rate</span>
                     <span className="text-3xl font-extrabold text-amber-400 font-mono my-2">
-                      {edData?.admissionRate != null ? `${edData.admissionRate}%` : '23.2%'}
+                      {edData?.admissionRate != null ? `${edData.admissionRate}%` : 'Unavailable'}
                     </span>
                     <span className="text-[10px] text-slate-500">Patients admitted from emergency</span>
                   </div>

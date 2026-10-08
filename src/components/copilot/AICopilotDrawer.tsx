@@ -72,7 +72,7 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
       sender: 'ai',
       text: 'Hello Executive team! I am your **Medical Operations Copilot** connected directly to verified core datasets (99,485 records). Ask me about real admissions, revenue realization, claim denials, ER waiting times, or pharmacy inventory.',
       timestamp: 'Just now',
-      data_source: 'Local Dataset',
+      data_source: 'System Assistant',
       domain: 'Executive Operations Command'
     }
   ]);
@@ -226,7 +226,7 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
               {/* Message Footer */}
               {msg.sender === 'ai' && (msg.data_source || msg.domain) && (
                 <div className="mt-2 pt-1.5 border-t border-slate-700/50 flex items-center justify-between text-[9px] font-mono text-slate-400">
-                  <span>Source: <strong className="text-slate-200">{msg.data_source || 'Local Dataset'}</strong></span>
+                  <span>Source: <strong className="text-slate-200">{msg.data_source || 'Local Fallback'}</strong></span>
                   <span className="text-cyan-400">{msg.bedrock_used ? 'Bedrock AI' : 'Deterministic Mode'}</span>
                 </div>
               )}

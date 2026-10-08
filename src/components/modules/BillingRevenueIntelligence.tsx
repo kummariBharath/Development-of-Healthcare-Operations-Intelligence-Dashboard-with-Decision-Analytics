@@ -60,7 +60,7 @@ export const BillingRevenueIntelligence: React.FC<BillingRevenueIntelligenceProp
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-slate-900 border border-slate-800 rounded-2xl min-h-[400px]">
         <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
-        <p className="text-sm font-medium text-slate-300">Loading real billing & revenue analytics from backend dataset...</p>
+        <p className="text-sm font-medium text-slate-300">Loading billing & revenue analytics from Amazon Athena...</p>
       </div>
     );
   }

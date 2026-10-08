@@ -95,7 +95,7 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
       sender: 'ai',
       text: `Welcome to the Medical Operations Intelligence AI Agent Studio. I am connected directly to the real healthcare core dataset (99,485 records across 41 tables). Ask me any question regarding admissions, revenue realization, claim denials, ER waiting times, physician workloads, medicine inventory, supplier performance, or quality compliance. When AWS Bedrock is offline, I compute exact answers deterministically from verified database records with zero synthetic data.`,
       timestamp: 'Active Session',
-      data_source: 'Local Dataset',
+      data_source: 'System Assistant',
       domain: 'System Initialization',
       method: 'Live dataset catalog loaded (99,485 records)',
       bedrock_used: false,
@@ -144,7 +144,7 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
         sender: 'ai',
         text: `Error connecting to AI Copilot API: ${err.message || 'Unknown network error'}. Please ensure the backend is running at http://127.0.0.1:8000.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        data_source: 'Local Dataset',
+        data_source: 'System Error',
         domain: 'System Connection Error',
         method: 'FastAPI Backend connection failed',
         bedrock_used: false,
@@ -164,7 +164,7 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
         sender: 'ai',
         text: `Conversation history cleared. Ready for your operational questions on scope: ${facilityLabel}.`,
         timestamp: 'Just now',
-        data_source: 'Local Dataset',
+        data_source: 'System Assistant',
         domain: 'Executive Operations Command',
         method: 'Ready for user query',
         bedrock_used: false,
@@ -345,7 +345,7 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
                 {msg.sender === 'ai' && (
                   <div className="pt-2 border-t border-slate-800 text-[10px] font-mono space-y-1 text-slate-400">
                     <div className="flex flex-wrap items-center justify-between gap-1">
-                      <span>Data Source: <strong className="text-slate-200">{msg.data_source || 'Local Dataset'}</strong></span>
+                      <span>Data Source: <strong className="text-slate-200">{msg.data_source || 'Local Fallback'}</strong></span>
                       <span className={`px-1.5 py-0.2 rounded font-bold ${msg.bedrock_used ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-slate-800 text-slate-300'}`}>
                         {msg.bedrock_used ? 'Amazon Bedrock AI' : 'Deterministic Analytics Mode'}
                       </span>
