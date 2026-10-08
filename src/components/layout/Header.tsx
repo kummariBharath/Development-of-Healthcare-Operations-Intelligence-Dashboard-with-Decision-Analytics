@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(e) => onTimeframeChange(e.target.value as TimeframeOption)}
             className="bg-transparent text-slate-200 border-none outline-none font-medium cursor-pointer"
           >
-            <option value="realtime" className="bg-slate-900">🔴 Real-Time Live Stream</option>
+            <option value="realtime" className="bg-slate-900">Current Operations</option>
             <option value="today" className="bg-slate-900">Today (24 Hrs)</option>
             <option value="weekly" className="bg-slate-900">This Week</option>
             <option value="monthly" className="bg-slate-900">This Month (Sep 2026)</option>

@@ -109,9 +109,12 @@ const navGroups: NavGroup[] = [
       { id: 'powerbi-hub', label: 'Executive Analytics Hub', icon: LayoutDashboard },
       { id: 'security-gov', label: 'Security & Governance', icon: Lock },
       { id: 'integrations-hub', label: 'Enterprise Integrations Hub', icon: Cable },
+      { id: 'aws-cloud-hub', label: 'AWS Cloud Services', icon: Cloud },
     ],
   },
 ];
+
+const totalModulesCount = navGroups.reduce((acc, g) => acc + g.items.length, 0);
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeModule,
@@ -129,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-3 border-b border-slate-800 flex items-center justify-between">
         {!collapsed && (
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            System Modules (19)
+            System Modules ({totalModulesCount})
           </span>
         )}
         <button

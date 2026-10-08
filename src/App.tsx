@@ -250,6 +250,10 @@ export const MedOpsDashboard: React.FC = () => {
               onExecuteAction={handleExecuteAction}
             />
           )}
+
+          {activeModule === 'aws-cloud-hub' && (
+            <AWSCloudServicesHub onExecuteAction={handleExecuteAction} />
+          )}
         </main>
       </div>
 
