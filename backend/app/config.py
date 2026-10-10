@@ -59,5 +59,10 @@ class Settings:
     AWS_SECRET_ACCESS_KEY: str = os.getenv('AWS_SECRET_ACCESS_KEY', '')
     AWS_SESSION_TOKEN: str = os.getenv('AWS_SESSION_TOKEN', '')
 
+    # AI Provider & Model Configuration (Google Gemini & Amazon Bedrock)
+    AI_PROVIDER: str = os.getenv('AI_PROVIDER', 'gemini').lower().strip()
+    GEMINI_API_KEY: str = os.getenv('GEMINI_API_KEY', '').strip()
+    GEMINI_MODEL: str = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash').strip()
+
 
 settings = Settings()

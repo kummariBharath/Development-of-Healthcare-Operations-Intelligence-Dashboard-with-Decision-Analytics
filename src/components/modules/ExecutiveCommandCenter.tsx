@@ -14,14 +14,21 @@ import {
   Database,
   Loader2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  Bot,
+  Lightbulb,
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import { revenueByDeptTrend } from '../../data/mockData';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { 
   fetchExecutiveSummary, 
+  fetchAIExecutiveSummary,
   fetchFacilityComparison,
   type ExecutiveSummaryResponse, 
+  type AIExecutiveSummaryResponse,
   type FacilityComparisonItem 
 } from '../../services/apiService';
 
@@ -40,8 +47,11 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
 }) => {
   const [summaryData, setSummaryData] = useState<ExecutiveSummaryResponse | null>(null);
   const [facilitiesComp, setFacilitiesComp] = useState<FacilityComparisonItem[]>([]);
+  const [aiSummary, setAiSummary] = useState<AIExecutiveSummaryResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [aiLoading, setAiLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const loadData = () => {
     setLoading(true);
@@ -63,8 +73,25 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
       });
   };
 
+  const loadAISummary = () => {
+    setAiLoading(true);
+    setAiError(null);
+
+    fetchAIExecutiveSummary(selectedFacility, selectedTimeframe)
+      .then((res) => {
+        setAiSummary(res);
+        setAiLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load AI Executive Summary:', err);
+        setAiError(err.message || 'AI summary service temporarily unreachable.');
+        setAiLoading(false);
+      });
+  };
+
   useEffect(() => {
     loadData();
+    loadAISummary();
   }, [selectedFacility, selectedTimeframe]);
 
   if (loading) {
@@ -179,6 +206,173 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
             </div>
           ))}
         </div>
+
+      {/* AI-Generated Executive Operational Briefing Card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden space-y-5">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <Sparkles className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-bold text-white tracking-tight">
+                  AI Operational Executive Briefing
+                </h2>
+                <span className="px-2.5 py-0.5 text-[10px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 rounded-full flex items-center gap-1">
+                  <Bot className="w-3 h-3" />
+                  {aiSummary?.provider || 'Google Gemini'}
+                </span>
+                {aiSummary?.model && (
+                  <span className="px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded">
+                    {aiSummary.model}
+                  </span>
+                )}
+                {aiSummary?.is_fallback && (
+                  <span className="px-2 py-0.5 text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800 rounded-full">
+                    Deterministic Mode
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Executive operational insights generated strictly from verified real-time clinical and financial telemetry.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {aiSummary?.data_freshness && (
+              <span className="text-[11px] text-slate-400 font-mono hidden md:inline-block">
+                Freshness: <span className="text-cyan-400">{aiSummary.data_freshness}</span>
+              </span>
+            )}
+            <button
+              onClick={loadAISummary}
+              disabled={aiLoading}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-cyan-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm"
+              title="Regenerate Executive Summary"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+              <span>{aiLoading ? 'Synthesizing...' : 'Refresh Briefing'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {aiLoading && (
+          <div className="flex flex-col items-center justify-center py-10 space-y-3">
+            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+            <p className="text-xs font-medium text-slate-300">
+              Analyzing verified operations metrics with {aiSummary?.provider || 'Google Gemini'}...
+            </p>
+            <span className="text-[11px] text-slate-500">
+              Synthesizing trends across admissions, length of stay, collections, and claim denials
+            </span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!aiLoading && aiError && (
+          <div className="p-4 bg-rose-950/30 border border-rose-900/60 rounded-xl flex items-center justify-between text-xs text-rose-300">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{aiError}</span>
+            </div>
+            <button
+              onClick={loadAISummary}
+              className="px-3 py-1 bg-rose-900/40 hover:bg-rose-900/60 text-white rounded-lg transition font-semibold"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Loaded Content */}
+        {!aiLoading && !aiError && aiSummary && (
+          <div className="space-y-5">
+            {/* Executive Brief Box */}
+            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-1">
+                Executive Synthesis
+              </span>
+              <p className="text-sm text-slate-200 leading-relaxed font-sans">
+                {aiSummary.executive_brief}
+              </p>
+            </div>
+
+            {/* 4 Structured Insight Panels */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Key Trends */}
+              <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-cyan-300">
+                  <TrendingUp className="w-4 h-4 text-cyan-400" />
+                  <span>Key Operational Trends</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-slate-300 list-disc list-inside">
+                  {aiSummary.key_trends.map((item, idx) => (
+                    <li key={idx} className="leading-snug">{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Operational Concerns */}
+              <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                  <span>Potential Operational Concerns</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-slate-300 list-disc list-inside">
+                  {aiSummary.operational_concerns.map((item, idx) => (
+                    <li key={idx} className="leading-snug">{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Management Recommendations */}
+              <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+                  <Lightbulb className="w-4 h-4 text-emerald-400" />
+                  <span>Areas for Management Review & Action</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-slate-300 list-disc list-inside">
+                  {aiSummary.management_recommendations.map((item, idx) => (
+                    <li key={idx} className="leading-snug">{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Empirical Observations */}
+              <div className="p-4 bg-slate-950/50 border border-slate-800/80 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                  <span>Verified Data Observations</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-slate-300 list-disc list-inside">
+                  {aiSummary.observations.map((item, idx) => (
+                    <li key={idx} className="leading-snug">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Disclaimer & Transparency Footer */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60 text-[10px] text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                AI-generated operations intelligence derived strictly from verified datasets. Not for individual clinical decisions.
+              </span>
+              {aiSummary.generated_at && (
+                <span className="font-mono text-slate-400">
+                  Generated: {new Date(aiSummary.generated_at).toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Revenue Trend & Multi-Location Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

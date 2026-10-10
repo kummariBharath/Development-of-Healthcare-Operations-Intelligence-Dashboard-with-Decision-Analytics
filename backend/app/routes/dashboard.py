@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from app.services.dashboard_service import (
     get_facilities_list,
     get_executive_summary,
+    get_ai_executive_summary,
     get_facility_comparison,
     get_billing_intelligence,
     get_claims_intelligence,
@@ -39,6 +40,15 @@ def get_summary(
     end_date: Optional[str] = Query(None)
 ):
     return get_executive_summary(facility_id or 'all', timeframe or 'realtime', start_date, end_date)
+
+@router.get("/ai-summary")
+def get_ai_summary(
+    facility_id: Optional[str] = Query('all'),
+    timeframe: Optional[str] = Query('realtime'),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None)
+):
+    return get_ai_executive_summary(facility_id or 'all', timeframe or 'realtime', start_date, end_date)
 
 @router.get("/facilities-comparison")
 def get_facilities_comp(

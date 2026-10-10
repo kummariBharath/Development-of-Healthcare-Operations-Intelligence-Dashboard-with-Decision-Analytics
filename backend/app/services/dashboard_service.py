@@ -549,6 +549,62 @@ def get_executive_summary(
         }
     }
 
+def get_ai_executive_summary(
+    facility_id: str = 'all',
+    timeframe: str = 'realtime',
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Computes verified operational metrics using the resilient data layer,
+    then synthesizes a structured executive summary via the provider-independent AI service.
+    """
+    exec_data = get_executive_summary(facility_id, timeframe, start_date, end_date)
+    raw = dict(exec_data.get('rawMetrics', {}))
+
+    facility_labels = {
+        'all': 'All Network Facilities',
+        'FAC001': 'Metro Health Center (FAC001)',
+        'FAC002': 'St. Jude Community Hospital (FAC002)',
+        'FAC003': 'Highland Regional Medical Center (FAC003)',
+        'FAC004': 'Valley Childrens & Specialty Clinic (FAC004)',
+        'FAC005': 'Lakeside Memorial Hospital (FAC005)'
+    }
+    fac_label = facility_labels.get(facility_id, f"Facility {facility_id}")
+
+    # Safely load supplementary verified operational metrics
+    try:
+        pharm = get_pharmacy_inventory_intelligence(facility_id, timeframe, start_date, end_date)
+        raw['lowStockMedicinesCount'] = pharm.get('lowStockCount', 0)
+    except Exception:
+        raw['lowStockMedicinesCount'] = None
+
+    try:
+        staff = get_doctor_staff_intelligence(facility_id, timeframe, start_date, end_date)
+        raw['avgDoctorUtilization'] = staff.get('avgDoctorUtilization', None)
+    except Exception:
+        raw['avgDoctorUtilization'] = None
+
+    try:
+        qc = get_quality_compliance(facility_id, timeframe, start_date, end_date)
+        sev_counts = qc.get('kpis', {}).get('incidentsBySeverity', {})
+        raw['criticalIncidentsCount'] = sev_counts.get('Critical', 0)
+    except Exception:
+        raw['criticalIncidentsCount'] = None
+
+    from app.services.ai_service import generate_executive_summary_insights
+    ai_insights = generate_executive_summary_insights(
+        raw_metrics=raw,
+        facility_id=facility_id,
+        facility_label=fac_label,
+        timeframe=timeframe
+    )
+
+    ai_insights['source'] = exec_data.get('source', 'Amazon Athena')
+    ai_insights['kpis'] = exec_data.get('kpis', [])
+    ai_insights['rawMetrics'] = raw
+    return ai_insights
+
 def get_facility_comparison(
     timeframe: str = 'realtime',
     start_date: Optional[str] = None,

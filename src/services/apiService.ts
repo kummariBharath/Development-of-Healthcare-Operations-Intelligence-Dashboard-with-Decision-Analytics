@@ -58,6 +58,36 @@ export interface ExecutiveSummaryResponse {
   };
 }
 
+export interface AIExecutiveSummaryResponse {
+  status: 'success' | 'fallback' | 'error';
+  provider: string;
+  model: string;
+  facility_id: string;
+  facility_label: string;
+  timeframe: string;
+  generated_at: string;
+  data_freshness: string;
+  executive_brief: string;
+  key_trends: string[];
+  operational_concerns: string[];
+  management_recommendations: string[];
+  observations: string[];
+  metrics_used?: Record<string, any>;
+  is_fallback: boolean;
+  errorMessage?: string | null;
+  source?: string;
+  kpis?: ExecutiveKPI[];
+  rawMetrics?: {
+    totalAdmissions: number;
+    avgLOS: number;
+    totalRevenue: number;
+    denialRate: number;
+    avgEDWait: number;
+    occupancyRate: number;
+    [key: string]: any;
+  };
+}
+
 export interface FacilityComparisonItem {
   id: string;
   name: string;
@@ -141,6 +171,15 @@ export async function fetchFacilities(): Promise<Facility[]> {
 export async function fetchExecutiveSummary(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<ExecutiveSummaryResponse> {
   const res = await apiFetch(`${API_BASE_URL}/dashboard/summary?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
   if (!res.ok) throw new Error('Failed to fetch executive summary from backend.');
+  return res.json();
+}
+
+/**
+ * Fetches AI-generated Executive Summary with verified metrics and structured insights
+ */
+export async function fetchAIExecutiveSummary(facilityId: string = 'all', timeframe: string = 'realtime'): Promise<AIExecutiveSummaryResponse> {
+  const res = await apiFetch(`${API_BASE_URL}/dashboard/ai-summary?facility_id=${encodeURIComponent(facilityId)}&timeframe=${encodeURIComponent(timeframe)}`);
+  if (!res.ok) throw new Error('Failed to fetch AI executive summary from backend.');
   return res.json();
 }
 

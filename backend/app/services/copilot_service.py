@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, List, Optional
-from app.aws.bedrock import invoke_bedrock_summary
+from app.services.ai_service import invoke_ai_summary, get_ai_provider
 from app.services.dashboard_service import (
     get_executive_summary,
     get_facility_comparison,
@@ -307,11 +307,13 @@ def process_copilot_query(user_query: str, facility_id: str = 'all') -> Dict[str
         method = "Aggregated across admissions.csv, billing.csv, claims.csv, and emergency_visits.csv."
 
     # =========================================================================
-    # 2. AMAZON BEDROCK INVOCATION (WITH DETERMINISTIC FALLBACK)
+    # 2. AI PROVIDER INVOCATION (GEMINI / BEDROCK WITH DETERMINISTIC FALLBACK)
     # =========================================================================
-    bedrock_used = False
+    ai_used = False
+    provider_instance = get_ai_provider()
+    active_provider_name = provider_instance.get_provider_name()
     ai_explanation = "Deterministic analytics mode"
-    ai_status = "Amazon Bedrock: Unavailable"
+    ai_status = f"{active_provider_name}: Standby"
 
     try:
         from app.config import settings
@@ -325,29 +327,27 @@ def process_copilot_query(user_query: str, facility_id: str = 'all') -> Dict[str
             f"User Question: {user_query}\n\n"
             f"Provide a concise executive operational summary and strategic takeaway. Do NOT give medical diagnosis or treatment advice."
         )
-        bedrock_res = invoke_bedrock_summary(prompt)
-        if bedrock_res.get('status') == 'success' and bedrock_res.get('summary'):
-            bedrock_used = True
-            ai_explanation = bedrock_res['summary']
-            ai_status = f"Amazon Bedrock: Active ({settings.AWS_BEDROCK_MODEL})"
+        ai_res = invoke_ai_summary(prompt)
+        if ai_res.get('status') == 'success' and ai_res.get('summary'):
+            ai_used = True
+            ai_explanation = ai_res['summary']
+            model_used = ai_res.get('modelId', '')
+            provider_used = ai_res.get('provider', active_provider_name)
+            ai_status = f"{provider_used}: Active ({model_used})"
         else:
-            err = bedrock_res.get('errorMessage') or 'Offline'
-            if 'ResourceNotFoundException' in err or 'end of its life' in err:
-                ai_status = f"Amazon Bedrock: Model Retired ({settings.AWS_BEDROCK_MODEL})"
-            elif 'Expired' in err or 'AccessDenied' in err or 'LoginRefreshRequired' in err:
-                ai_status = "Amazon Bedrock: Session Expired (Deterministic Fallback Active)"
-            else:
-                ai_status = f"Amazon Bedrock: Standby ({err[:35]}...)"
+            err = ai_res.get('errorMessage') or 'Offline'
+            provider_used = ai_res.get('provider', active_provider_name)
+            ai_status = f"{provider_used}: Standby ({err[:35]}...)"
     except Exception as e:
-        logger.warning(f"Bedrock invocation bypassed: {e}")
-        ai_status = f"Amazon Bedrock: Error ({type(e).__name__})"
+        logger.warning(f"AI invocation bypassed: {e}")
+        ai_status = f"{active_provider_name}: Error ({type(e).__name__})"
 
-    # If Bedrock was not used, build deterministic explanation
-    if not bedrock_used:
+    # If AI was not used, build deterministic explanation
+    if not ai_used:
         ai_explanation = (
             f"Deterministic Analytics Mode: Query resolved directly from verified {source} telemetry. "
             f"Calculations performed across operational records for {facility_label}. "
-            f"Amazon Bedrock foundation model is in standby ({ai_status}) and metrics were verified deterministically."
+            f"AI foundation model is in standby ({ai_status}) and metrics were verified deterministically."
         )
 
     return {
@@ -358,7 +358,9 @@ def process_copilot_query(user_query: str, facility_id: str = 'all') -> Dict[str
         "domain": domain,
         "evidence": evidence,
         "method": method,
-        "bedrock_used": bedrock_used,
+        "bedrock_used": ai_used,  # Preserved for backward-compatibility with React frontend
+        "ai_used": ai_used,
+        "ai_provider": active_provider_name,
         "ai_explanation": ai_explanation,
         "ai_status": ai_status,
         "facility_id": facility_id

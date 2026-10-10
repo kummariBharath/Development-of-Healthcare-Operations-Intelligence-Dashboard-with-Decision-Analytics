@@ -40,7 +40,7 @@
 - [5. Data Engineering & Query Execution Architecture](#5-data-engineering--query-execution-architecture)
 - [6. Resilient Analytics & Data Source Architecture](#6-resilient-analytics--data-source-architecture)
 - [7. Frontend → Backend → AWS Execution Flow](#7-frontend--backend--aws-execution-flow)
-- [8. AI & Amazon Bedrock Architecture](#8-ai--amazon-bedrock-architecture)
+- [8. AI Decision Intelligence: Provider-Independent Architecture (Google Gemini & Amazon Bedrock)](#8-ai-decision-intelligence-provider-independent-architecture-google-gemini--amazon-bedrock)
 - [9. Authentication & User Access Architecture](#9-authentication--user-access-architecture)
 - [10. Security Perimeter & Credential Isolation](#10-security-perimeter--credential-isolation)
 - [11. Product Integrity & Execution Truthfulness (Phase 2A)](#11-product-integrity--execution-truthfulness-phase-2a)
@@ -362,37 +362,88 @@ sequenceDiagram
 
 ---
 
-## 8. AI & Amazon Bedrock Architecture
+## 8. AI Decision Intelligence: Provider-Independent Architecture (Google Gemini & Amazon Bedrock)
 
-MedOps Intelligence features an integrated operational decision copilot powered by **Amazon Bedrock**:
+MedOps Intelligence features a **Provider-Independent AI Architecture** designed to seamlessly bridge cloud AI inference with enterprise healthcare data telemetry.
 
 ```
-User Query (e.g., "Summarize pharmacy stockout risks for Metro Health")
-        ↓
-React AI Copilot Drawer (AICopilotDrawer.tsx)
-        ↓
-FastAPI Copilot Router (/api/copilot/query)
-        ↓
-AWS Session / Temporary Credentials (via STS / OIDC)
-        ↓
-Amazon Bedrock Runtime (Region: us-east-1)
-        ↓
-Foundation Model: amazon.nova-lite-v1:0
-        ↓
-Structured AI Analytical Response
-        ↓
-FastAPI Context Serialization
-        ↓
-React Copilot UI (Answer + Real Metric Evidence Cards)
+React Frontend (Executive Command Center / AI Copilot Drawer / AI Agent Tab)
+                             |
+                             v
+                 FastAPI Backend Service Layer
+                             |
+              +--------------+--------------+
+              |                             |
+              v                             v
+    AWS Analytics Pipeline        Provider-Independent AI Service
+    (S3 / Glue / Athena)          (app/services/ai_service.py)
+              |                             |
+              v                     +-------+-------+
+    Verified Aggregate Metrics     |               |
+              |                     v               v
+              +--------------> [Google Gemini] [Amazon Bedrock]
+                               (Temporary)     (AWS Native)
+                                    |               |
+                                    +-------+-------+
+                                            |
+                                            v
+                              AI Executive Summary & Copilot
 ```
 
-### Bedrock Configuration & Safeguards
+### 1. Purpose of the Google Gemini Integration
+Amazon Bedrock model access enablement is currently pending cloud-side activation. To provide immediate, production-grade operational intelligence, **Google Gemini API** is integrated as the temporary primary AI provider using Google's official Python SDK (`google-genai`).
 
-* **Region**: `us-east-1` (N. Virginia).
-* **Intended Foundation Model**: `amazon.nova-lite-v1:0` (Amazon Nova family).
-* **Retired Legacy Models**: Claude 3.5 Sonnet references in previous documentation have been updated; `amazon.nova-lite-v1:0` is the active model configured in `backend/app/config.py`.
-* **Prompt Grounding**: Prompts are constructed using strictly verified backend metrics extracted by domain services (`get_pharmacy_inventory_intelligence`, `get_claims_intelligence`, etc.). The model is instructed to summarize and strategize without hallucinating clinical advice.
-* **Deterministic Fallback**: If Bedrock is unreachable (quota limits, retirement, or credential expiration), the copilot service automatically switches to **Deterministic Analytics Mode**. It synthesizes direct answers from verified metrics and provides structured evidence cards without breaking the user experience.
+This integration strictly adheres to the following principles:
+- **Zero AWS Regression**: S3 data storage, AWS Glue Data Catalog, Amazon Athena serverless queries, and IAM roles remain 100% active and untouched.
+- **Provider-Independent Adapter**: An abstraction layer (`BaseAIProvider`, `GeminiProvider`, `BedrockProvider`) isolates provider specifics from healthcare business logic.
+- **Strict Data Grounding**: Prompts contain **only aggregate verified numerical metrics** (admissions, ALOS, collections, denial rates, ED wait times, occupancy). Zero identifiable patient information (PHI) is ever transmitted.
+- **Resilient Fallback**: If external LLM APIs experience rate limits, model retirement, or network timeouts, the system automatically falls back to **Deterministic Analytics Mode**, ensuring the executive dashboard never crashes.
+
+### 2. Required Environment Variables
+
+Configure these variables in your backend environment file (`backend/.env`):
+
+| Variable | Description | Default / Example | Security Requirement |
+| :--- | :--- | :--- | :--- |
+| `AI_PROVIDER` | Active AI provider (`gemini` or `bedrock`) | `gemini` | Non-secret |
+| `GEMINI_API_KEY` | Google Gemini API Key | `your_gemini_api_key_here` | **Strict Secret**: Backend-only, never committed to Git, never exposed to frontend |
+| `GEMINI_MODEL` | Gemini Model Identifier | `gemini-3.5-flash` | Non-secret |
+| `AWS_BEDROCK_MODEL` | Amazon Bedrock Model Identifier | `amazon.nova-lite-v1:0` | Non-secret |
+| `AWS_BEDROCK_REGION` | AWS Bedrock Service Region | `us-east-1` | Non-secret |
+
+### 3. Secure API Key Configuration
+- **Backend Isolation**: `GEMINI_API_KEY` is loaded exclusively inside the FastAPI backend runtime (`backend/app/config.py`).
+- **Zero Browser Exposure**: The key is never referenced, packaged, or transmitted to Vite or the React client.
+- **Git Protection**: `.env` and `backend/.env` are strictly excluded in `.gitignore` (`.env*`). A placeholder template is maintained in `.env.example`.
+- **Log Sanitization**: Full prompts, raw tokens, and API credentials are never written to server logs or client error responses.
+
+### 4. AI-Powered Executive Operational Summary
+The primary AI capability is the **AI Operational Executive Briefing** integrated directly into the `ExecutiveCommandCenter`:
+- **Real-Time Synthesis**: Dynamically queries Athena/S3 for active admissions, bed occupancy, collections, emergency wait times, and claims denial rates.
+- **Structured Output**: Separates:
+  1. *Executive Synthesis Brief*: High-level operations narrative.
+  2. *Key Operational Trends*: Factual trends grounded in telemetry numbers.
+  3. *Operational Concerns*: Early warning capacity thresholds and financial risks.
+  4. *Management Recommendations*: Actionable administrative interventions.
+  5. *Verified Observations*: Clear boundary separating empirical data from advisory recommendations.
+- **Freshness & Provenance**: Displays reporting timeframe, data source provenance, and exact generation timestamps.
+- **Interactive UI**: Includes loading skeletons, error states, and on-demand refresh triggers.
+
+### 5. Known Limitations & API Quota Considerations
+- **Demand Spikes (503 Unavailable)**: Public AI APIs may experience transient capacity spikes. The MedOps Gemini adapter implements automatic candidate model cascading (`gemini-3.5-flash` → `gemini-3.8-flash` → `gemini-flash-latest`) before initiating deterministic fallback.
+- **Rate Limits (429 Quota Limits)**: If quota exhaustion occurs, the adapter catches the exception gracefully and serves a deterministic executive brief with an informational status banner.
+- **Clinical Boundary**: Summaries are strictly operational and administrative; they do not diagnose patients or make clinical treatment decisions.
+
+### 6. Future Migration Path to Amazon Bedrock
+When AWS Bedrock access is enabled:
+1. Update `backend/.env`:
+   ```bash
+   AI_PROVIDER=bedrock
+   AWS_BEDROCK_MODEL=amazon.nova-lite-v1:0
+   ```
+2. Restart the FastAPI backend server.
+3. The backend immediately routes inference through `BedrockProvider` using `boto3` and AWS credentials.
+4. **Zero Frontend Changes Required**: The React dashboard, API client, and component interfaces remain completely unchanged.
 
 ---
 
@@ -966,13 +1017,23 @@ source venv/bin/activate
 # Install Python dependencies
 pip install -r requirements.txt
 
+# Configure backend environment variables in backend/.env
+# (Copy from .env.example and populate your keys safely)
+# AI_PROVIDER=gemini
+# GEMINI_API_KEY=your_gemini_api_key_here
+# GEMINI_MODEL=gemini-3.5-flash
+
+# Run automated backend & AI verification tests
+python -m unittest tests/test_ai_integration.py
+
 # Launch FastAPI development server
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 * Backend API will be live at: `http://127.0.0.1:8000`
 * Interactive Swagger API documentation: `http://127.0.0.1:8000/docs`
-* Multi-service cloud health probe: `http://127.0.0.1:8000/api/health`
+* Multi-service cloud & AI health probe: `http://127.0.0.1:8000/api/health`
+* Live AI Executive Summary endpoint: `http://127.0.0.1:8000/api/dashboard/ai-summary`
 
 ---
 

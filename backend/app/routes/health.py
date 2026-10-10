@@ -22,5 +22,11 @@ def get_health_status():
             "glue": glue_status["status"],
             "athena": "ready",
             "bedrock": "ready"
+        },
+        "aiProvider": {
+            "active": settings.AI_PROVIDER,
+            "providerName": "Google Gemini" if settings.AI_PROVIDER == "gemini" else "Amazon Bedrock",
+            "model": settings.GEMINI_MODEL if settings.AI_PROVIDER == "gemini" else settings.AWS_BEDROCK_MODEL,
+            "configured": bool(settings.GEMINI_API_KEY) if settings.AI_PROVIDER == "gemini" else bool(settings.AWS_ACCESS_KEY_ID or settings.AWS_BEDROCK_MODEL)
         }
     }
