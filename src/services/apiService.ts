@@ -140,6 +140,10 @@ export interface CopilotResponse {
   evidence: CopilotEvidenceItem[];
   method: string;
   bedrock_used: boolean;
+  ai_used?: boolean;
+  ai_provider?: string;
+  model?: string;
+  is_fallback?: boolean;
   ai_explanation: string;
   ai_status: string;
   facility_id: string;

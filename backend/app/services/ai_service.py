@@ -36,11 +36,12 @@ class GeminiProvider(BaseAIProvider):
     """
     def __init__(self):
         self.api_key = (settings.GEMINI_API_KEY or '').strip()
-        self.model_id = (settings.GEMINI_MODEL or 'gemini-3.5-flash').strip()
+        self.model_id = (settings.GEMINI_MODEL or 'gemini-3.1-flash-lite').strip()
         self._client = None
         self._fallback_models = [
             self.model_id,
-            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-3-flash-preview',
             'gemini-3.8-flash',
             'gemini-flash-latest'
         ]

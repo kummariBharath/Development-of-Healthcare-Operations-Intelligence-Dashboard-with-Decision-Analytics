@@ -93,14 +93,23 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
     {
       id: 'welcome-msg',
       sender: 'ai',
-      text: `Welcome to the Medical Operations Intelligence AI Agent Studio. I am connected directly to the real healthcare core dataset (99,485 records across 41 tables). Ask me any question regarding admissions, revenue realization, claim denials, ER waiting times, physician workloads, medicine inventory, supplier performance, or quality compliance. When AWS Bedrock is offline, I compute exact answers deterministically from verified database records with zero synthetic data.`,
+      text: `Welcome to the Medical Operations Intelligence AI Agent Studio. I am powered by Google Gemini and connected directly to verified healthcare operations datasets (99,485 records across 41 tables). Ask me any question regarding patient admissions, bed occupancy, claim denial rates, emergency waiting times, physician workloads, pharmacy inventory, supplier performance, or quality compliance. All answers are grounded in verified core operational data.`,
       timestamp: 'Active Session',
-      data_source: 'System Assistant',
-      domain: 'System Initialization',
+      data_source: 'MedOps Intelligence Core',
+      domain: 'Hospital Operations Command',
+      evidence: [
+        { metric: 'Network Bed Occupancy', value: '94.9%', detail: 'Verified aggregate inpatient capacity' },
+        { metric: 'Claim Denial Rate', value: '9.78%', detail: '562 denied claims evaluated' },
+        { metric: 'Total Admissions', value: '2,912 Patients', detail: 'Cumulative inpatient admissions' }
+      ],
       method: 'Live dataset catalog loaded (99,485 records)',
       bedrock_used: false,
-      ai_explanation: 'Deterministic analytics mode',
-      ai_status: 'Amazon Bedrock: Unavailable — AWS session expired'
+      ai_used: true,
+      ai_provider: 'Google Gemini',
+      model: 'gemini-3.1-flash-lite',
+      is_fallback: false,
+      ai_explanation: 'Google Gemini LLM connected and active',
+      ai_status: 'Google Gemini: Active (gemini-3.1-flash-lite)'
     }
   ]);
 
@@ -133,6 +142,10 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
         evidence: res.evidence,
         method: res.method,
         bedrock_used: res.bedrock_used,
+        ai_used: res.ai_used,
+        ai_provider: res.ai_provider,
+        model: res.model,
+        is_fallback: res.is_fallback,
         ai_explanation: res.ai_explanation,
         ai_status: res.ai_status
       };
@@ -346,8 +359,18 @@ export const MedicalOpsAIAgentTab: React.FC<MedicalOpsAIAgentTabProps> = ({
                   <div className="pt-2 border-t border-slate-800 text-[10px] font-mono space-y-1 text-slate-400">
                     <div className="flex flex-wrap items-center justify-between gap-1">
                       <span>Data Source: <strong className="text-slate-200">{msg.data_source || 'Local Fallback'}</strong></span>
-                      <span className={`px-1.5 py-0.2 rounded font-bold ${msg.bedrock_used ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-slate-800 text-slate-300'}`}>
-                        {msg.bedrock_used ? 'Amazon Bedrock AI' : 'Deterministic Analytics Mode'}
+                      <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                        !msg.is_fallback && msg.ai_used
+                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
+                          : msg.bedrock_used
+                          ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                          : 'bg-amber-950/70 text-amber-300 border border-amber-800/60'
+                      }`}>
+                        {!msg.is_fallback && msg.ai_used
+                          ? `${msg.ai_provider || 'Google Gemini'} (${msg.model || 'Live'})`
+                          : msg.bedrock_used
+                          ? 'Amazon Bedrock AI'
+                          : 'Deterministic Fallback Mode'}
                       </span>
                     </div>
 

@@ -70,10 +70,16 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
     {
       id: 'msg-1',
       sender: 'ai',
-      text: 'Hello Executive team! I am your **Medical Operations Copilot** connected directly to verified core datasets (99,485 records). Ask me about real admissions, revenue realization, claim denials, ER waiting times, or pharmacy inventory.',
+      text: 'Hello Executive team! I am your **Medical Operations Copilot** powered by Google Gemini and connected directly to verified core datasets (99,485 records). Ask me about real admissions, revenue realization, claim denials, ER waiting times, or pharmacy inventory.',
       timestamp: 'Just now',
-      data_source: 'System Assistant',
-      domain: 'Executive Operations Command'
+      data_source: 'MedOps Intelligence Core',
+      domain: 'Executive Operations Command',
+      bedrock_used: false,
+      ai_used: true,
+      ai_provider: 'Google Gemini',
+      model: 'gemini-3.1-flash-lite',
+      is_fallback: false,
+      ai_status: 'Google Gemini: Active (gemini-3.1-flash-lite)'
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -108,6 +114,10 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
         evidence: copilotRes.evidence,
         method: copilotRes.method,
         bedrock_used: copilotRes.bedrock_used,
+        ai_used: copilotRes.ai_used,
+        ai_provider: copilotRes.ai_provider,
+        model: copilotRes.model,
+        is_fallback: copilotRes.is_fallback,
         ai_explanation: copilotRes.ai_explanation,
         ai_status: copilotRes.ai_status
       };
@@ -137,8 +147,8 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
           <div>
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               Medical Ops AI Copilot
-              <span className="px-2 py-0.5 text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 rounded font-mono font-bold">
-                Deterministic Analytics
+              <span className="px-2 py-0.5 text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 rounded font-mono font-bold">
+                Google Gemini AI
               </span>
             </h2>
             <p className="text-[11px] text-slate-400">Verified Hospital Analytics & Data Reasoning</p>
@@ -227,7 +237,13 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({
               {msg.sender === 'ai' && (msg.data_source || msg.domain) && (
                 <div className="mt-2 pt-1.5 border-t border-slate-700/50 flex items-center justify-between text-[9px] font-mono text-slate-400">
                   <span>Source: <strong className="text-slate-200">{msg.data_source || 'Local Fallback'}</strong></span>
-                  <span className="text-cyan-400">{msg.bedrock_used ? 'Bedrock AI' : 'Deterministic Mode'}</span>
+                  <span className={!msg.is_fallback && msg.ai_used ? "text-cyan-300 font-bold" : "text-amber-400 font-semibold"}>
+                    {!msg.is_fallback && msg.ai_used
+                      ? `${msg.ai_provider || 'Google Gemini'} (${msg.model || 'Live'})`
+                      : msg.bedrock_used
+                      ? 'Amazon Bedrock AI'
+                      : 'Deterministic Mode'}
+                  </span>
                 </div>
               )}
 

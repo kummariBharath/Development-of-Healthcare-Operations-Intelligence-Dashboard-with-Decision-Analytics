@@ -143,6 +143,10 @@ export interface AICopilotMessage {
   evidence?: Array<{ metric: string; value: string; detail?: string }>;
   method?: string;
   bedrock_used?: boolean;
+  ai_used?: boolean;
+  ai_provider?: string;
+  model?: string;
+  is_fallback?: boolean;
   ai_explanation?: string;
   ai_status?: string;
 }

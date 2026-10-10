@@ -62,7 +62,7 @@ class Settings:
     # AI Provider & Model Configuration (Google Gemini & Amazon Bedrock)
     AI_PROVIDER: str = os.getenv('AI_PROVIDER', 'gemini').lower().strip()
     GEMINI_API_KEY: str = os.getenv('GEMINI_API_KEY', '').strip()
-    GEMINI_MODEL: str = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash').strip()
+    GEMINI_MODEL: str = os.getenv('GEMINI_MODEL', 'gemini-3.1-flash-lite').strip()
 
 
 settings = Settings()
