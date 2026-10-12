@@ -6,8 +6,6 @@ import {
   DollarSign, 
   FileCheck2, 
   Code2, 
-  Sparkles, 
-  Workflow, 
   Pill, 
   TestTube, 
   Siren, 
@@ -16,10 +14,6 @@ import {
   Truck, 
   TrendingUp, 
   Bot, 
-  LayoutDashboard, 
-  Lock,
-  Cable,
-  Cpu,
   ChevronRight
 } from 'lucide-react';
 
@@ -30,8 +24,6 @@ export type ModuleId =
   | 'billing-rev'
   | 'claims-auto'
   | 'coding-doc'
-  | 'ai-predictive'
-  | 'workflow-auto'
   | 'pharmacy-inv'
   | 'lab-diag'
   | 'emergency-ops'
@@ -39,11 +31,7 @@ export type ModuleId =
   | 'patient-exp'
   | 'supply-chain'
   | 'financial-intel'
-  | 'ai-copilot-tab'
-  | 'powerbi-hub'
-  | 'security-gov'
-  | 'integrations-hub'
-  | 'automation-pipeline';
+  | 'ai-copilot-tab';
 
 interface SidebarProps {
   activeModule: ModuleId;
@@ -93,20 +81,9 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    groupName: 'AI & Automation Engine',
-    items: [
-      { id: 'ai-predictive', label: 'AI & Predictive Intelligence', icon: Sparkles, badge: 'Predictive', badgeColor: 'bg-cyan-500 text-slate-950' },
-      { id: 'workflow-auto', label: 'Workflow Automation Engine', icon: Workflow },
-      { id: 'automation-pipeline', label: 'Data → AI → Auto Pipeline', icon: Cpu, badge: 'Auto', badgeColor: 'bg-emerald-500 text-slate-950' },
-    ],
-  },
-  {
-    groupName: 'Governance & Dashboards',
+    groupName: 'AI Agent & Decision Support',
     items: [
       { id: 'ai-copilot-tab', label: 'Medical Operations AI Agent', icon: Bot },
-      { id: 'powerbi-hub', label: 'Executive Analytics Hub', icon: LayoutDashboard },
-      { id: 'security-gov', label: 'Security & Governance', icon: Lock },
-      { id: 'integrations-hub', label: 'Enterprise Integrations Hub', icon: Cable },
     ],
   },
 ];

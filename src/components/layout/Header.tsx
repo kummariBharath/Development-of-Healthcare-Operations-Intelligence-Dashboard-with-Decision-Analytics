@@ -4,7 +4,6 @@ import {
   Clock, 
   UserCheck, 
   Bot, 
-  LayoutDashboard, 
   Download,
   Activity
 } from 'lucide-react';
@@ -20,8 +19,6 @@ interface HeaderProps {
   onTimeframeChange: (tf: TimeframeOption) => void;
   onToggleCopilot: () => void;
   isCopilotOpen: boolean;
-  powerBiMode: boolean;
-  onTogglePowerBi: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,9 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   selectedTimeframe,
   onTimeframeChange,
   onToggleCopilot,
-  isCopilotOpen,
-  powerBiMode,
-  onTogglePowerBi
+  isCopilotOpen
 }) => {
   const [facilities, setFacilities] = React.useState<Facility[]>(facilitiesData);
 
@@ -109,20 +104,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Header Actions & Mode Toggles */}
       <div className="flex items-center gap-2">
-        {/* Analytics Workspace Mode Toggle */}
-        <button
-          onClick={onTogglePowerBi}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-            powerBiMode
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-950/30'
-              : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-800'
-          }`}
-          title="Toggle Embedded Executive Analytics Mode"
-        >
-          <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden sm:inline">Analytics Mode</span>
-        </button>
-
         {/* Dedicated AI Agent Copilot Drawer Trigger */}
         <button
           onClick={onToggleCopilot}

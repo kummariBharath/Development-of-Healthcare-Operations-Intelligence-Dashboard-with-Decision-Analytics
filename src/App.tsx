@@ -11,8 +11,6 @@ import { DoctorStaffIntelligence } from './components/modules/DoctorStaffIntelli
 import { BillingRevenueIntelligence } from './components/modules/BillingRevenueIntelligence';
 import { InsuranceClaimsAutomation } from './components/modules/InsuranceClaimsAutomation';
 import { MedicalCodingDocumentation } from './components/modules/MedicalCodingDocumentation';
-import { AIPredictiveIntelligence } from './components/modules/AIPredictiveIntelligence';
-import { WorkflowAutomationEngine } from './components/modules/WorkflowAutomationEngine';
 import { PharmacyInventory } from './components/modules/PharmacyInventory';
 import { LaboratoryDiagnostics } from './components/modules/LaboratoryDiagnostics';
 import { EmergencyCriticalOperations } from './components/modules/EmergencyCriticalOperations';
@@ -21,10 +19,6 @@ import { PatientExperience } from './components/modules/PatientExperience';
 import { SupplyChainVendor } from './components/modules/SupplyChainVendor';
 import { FinancialIntelligence } from './components/modules/FinancialIntelligence';
 import { MedicalOpsAIAgentTab } from './components/modules/MedicalOpsAIAgentTab';
-import { PowerBIDashboardHub } from './components/modules/PowerBIDashboardHub';
-import { SecurityGovernance } from './components/modules/SecurityGovernance';
-import { IntegrationsHub } from './components/modules/IntegrationsHub';
-import { AutomationPipelineVisualizer } from './components/modules/AutomationPipelineVisualizer';
 
 // Modals
 import { EnterpriseDrilldownModal } from './components/modals/EnterpriseDrilldownModal';
@@ -44,7 +38,6 @@ export const MedOpsDashboard: React.FC = () => {
 
   // Drawers & Modals
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
-  const [powerBiMode, setPowerBiMode] = useState<boolean>(false);
   const [isDrilldownOpen, setIsDrilldownOpen] = useState<boolean>(false);
   const [drilldownFacilityId, setDrilldownFacilityId] = useState<string>('all');
   const [isKPIBuilderOpen, setIsKPIBuilderOpen] = useState<boolean>(false);
@@ -102,11 +95,6 @@ export const MedOpsDashboard: React.FC = () => {
         onTimeframeChange={setSelectedTimeframe}
         onToggleCopilot={() => setIsCopilotOpen(!isCopilotOpen)}
         isCopilotOpen={isCopilotOpen}
-        powerBiMode={powerBiMode}
-        onTogglePowerBi={() => {
-          setPowerBiMode(!powerBiMode);
-          if (!powerBiMode) setActiveModule('powerbi-hub');
-        }}
       />
 
       {/* Main Layout Area */}
@@ -148,22 +136,6 @@ export const MedOpsDashboard: React.FC = () => {
 
           {activeModule === 'coding-doc' && (
             <MedicalCodingDocumentation
-              selectedFacility={selectedFacility}
-              selectedTimeframe={selectedTimeframe}
-              onExecuteAction={handleExecuteAction}
-            />
-          )}
-
-          {activeModule === 'ai-predictive' && (
-            <AIPredictiveIntelligence
-              selectedFacility={selectedFacility}
-              selectedTimeframe={selectedTimeframe}
-              onExecuteAction={handleExecuteAction}
-            />
-          )}
-
-          {activeModule === 'workflow-auto' && (
-            <WorkflowAutomationEngine
               selectedFacility={selectedFacility}
               selectedTimeframe={selectedTimeframe}
               onExecuteAction={handleExecuteAction}
@@ -223,30 +195,6 @@ export const MedOpsDashboard: React.FC = () => {
               selectedFacility={selectedFacility}
               selectedTimeframe={selectedTimeframe}
               onExecuteAction={handleExecuteAction} 
-            />
-          )}
-
-          {activeModule === 'powerbi-hub' && (
-            <PowerBIDashboardHub
-              selectedFacility={selectedFacility}
-              selectedTimeframe={selectedTimeframe}
-              onExecuteAction={handleExecuteAction}
-            />
-          )}
-
-          {activeModule === 'security-gov' && (
-            <SecurityGovernance onExecuteAction={handleExecuteAction} />
-          )}
-
-          {activeModule === 'integrations-hub' && (
-            <IntegrationsHub onExecuteAction={handleExecuteAction} />
-          )}
-
-          {activeModule === 'automation-pipeline' && (
-            <AutomationPipelineVisualizer
-              selectedFacility={selectedFacility}
-              selectedTimeframe={selectedTimeframe}
-              onExecuteAction={handleExecuteAction}
             />
           )}
         </main>
