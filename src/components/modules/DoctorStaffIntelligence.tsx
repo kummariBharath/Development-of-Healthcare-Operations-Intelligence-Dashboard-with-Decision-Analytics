@@ -36,7 +36,7 @@ export const DoctorStaffIntelligence: React.FC<DoctorStaffIntelligenceProps> = (
     setLoading(true);
     setError(null);
 
-    fetchDoctorStaffIntelligence(selectedFacility)
+    fetchDoctorStaffIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);

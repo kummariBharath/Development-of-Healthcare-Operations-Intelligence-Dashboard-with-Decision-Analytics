@@ -3,8 +3,9 @@ import io
 import time
 import glob
 import logging
+from datetime import datetime, date, timedelta
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import pandas as pd
 from app.aws.athena import execute_athena_query
 from app.aws.session import get_s3_client
@@ -269,6 +270,59 @@ def _read_local_csv(table_name: str) -> pd.DataFrame:
     """
     return _load_table(table_name)
 
+def _get_timeframe_range(
+    timeframe: str = 'realtime', 
+    start_date: Optional[str] = None, 
+    end_date: Optional[str] = None
+) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
+    """
+    Returns (start_timestamp, end_timestamp) for a given timeframe option or explicit date range.
+    Semantics:
+      - 'realtime' / 'all': None, None (no date filtering applied)
+      - 'today': Current operational day (e.g. 2026-10-12 00:00:00 to 2026-10-12 23:59:59.999999)
+      - 'weekly': Last 7 days ending at current operational day end (e.g. 2026-10-05 00:00:00 to 2026-10-12 23:59:59.999999)
+      - 'monthly': September 2026 (2026-09-01 00:00:00 to 2026-09-30 23:59:59.999999) labeled 'This Month (Sep 2026)'
+      - 'quarterly': Q3 2026 (2026-07-01 00:00:00 to 2026-09-30 23:59:59.999999) labeled 'Q3 2026'
+      - 'ytd': Year to Date 2026 (2026-01-01 00:00:00 to current operational day end e.g. 2026-10-12 23:59:59.999999)
+    """
+    if start_date and end_date:
+        s_dt = pd.to_datetime(start_date, errors='coerce')
+        e_dt = pd.to_datetime(end_date, errors='coerce')
+        if pd.isna(s_dt) or pd.isna(e_dt):
+            return None, None
+        if e_dt == pd.to_datetime(e_dt.date()):
+            e_dt = e_dt + pd.Timedelta(days=1, microseconds=-1)
+        return s_dt, e_dt
+
+    if not timeframe or timeframe in ['realtime', 'all']:
+        return None, None
+
+    now = datetime.now()
+    ref_date = now.date() if now.year == 2026 else date(2026, 10, 12)
+
+    if timeframe == 'today':
+        s_dt = pd.to_datetime(f"{ref_date} 00:00:00")
+        e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+        return s_dt, e_dt
+    elif timeframe == 'weekly':
+        s_dt = pd.to_datetime(f"{ref_date - timedelta(days=7)} 00:00:00")
+        e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+        return s_dt, e_dt
+    elif timeframe == 'monthly':
+        s_dt = pd.to_datetime("2026-09-01 00:00:00")
+        e_dt = pd.to_datetime("2026-09-30 23:59:59.999999")
+        return s_dt, e_dt
+    elif timeframe == 'quarterly':
+        s_dt = pd.to_datetime("2026-07-01 00:00:00")
+        e_dt = pd.to_datetime("2026-09-30 23:59:59.999999")
+        return s_dt, e_dt
+    elif timeframe == 'ytd':
+        s_dt = pd.to_datetime("2026-01-01 00:00:00")
+        e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+        return s_dt, e_dt
+
+    return None, None
+
 def _apply_date_filter(
     df: pd.DataFrame, 
     date_column: str, 
@@ -283,40 +337,40 @@ def _apply_date_filter(
     if df is None or df.empty or date_column not in df.columns:
         return df
 
+    if (not timeframe or timeframe in ['realtime', 'all']) and not (start_date and end_date):
+        return df
+
     try:
         dates = pd.to_datetime(df[date_column], errors='coerce')
+        if dates.dt.tz is not None:
+            dates = dates.dt.tz_localize(None)
+
         valid_mask = dates.notna()
         if not valid_mask.any():
             return df
 
-        if start_date and end_date:
-            s_dt = pd.to_datetime(start_date)
-            e_dt = pd.to_datetime(end_date)
-            return df[(dates >= s_dt) & (dates <= e_dt)]
-
-        max_dt = dates[valid_mask].max()
-
-        if timeframe == 'today':
-            return df[dates.dt.date == max_dt.date()]
-        elif timeframe == 'weekly':
-            cutoff = max_dt - pd.Timedelta(days=7)
-            return df[dates >= cutoff]
-        elif timeframe == 'monthly':
-            cutoff = max_dt - pd.Timedelta(days=30)
-            return df[dates >= cutoff]
-        elif timeframe == 'quarterly':
-            cutoff = max_dt - pd.Timedelta(days=90)
-            return df[dates >= cutoff]
-        elif timeframe == 'ytd':
-            s_year = pd.to_datetime(f"{max_dt.year}-01-01")
-            return df[dates >= s_year]
-        elif timeframe in ['realtime', 'all']:
+        s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+        if s_dt is None or e_dt is None:
             return df
+
+        # Special handling for monthly aggregate tables (e.g. financial_monthly where column is 'month' with YYYY-MM-01)
+        if date_column == 'month':
+            s_month = pd.to_datetime(f"{s_dt.year}-{s_dt.month:02d}-01")
+            e_month = pd.to_datetime(f"{e_dt.year}-{e_dt.month:02d}-01")
+            mask = valid_mask & (dates >= s_month) & (dates <= e_month)
+            # If the current month hasn't closed yet in historical records, fallback to latest closed month on or before e_month
+            if not mask.any():
+                past_dates = dates[valid_mask & (dates <= e_month)]
+                if not past_dates.empty:
+                    latest_m = past_dates.max()
+                    mask = valid_mask & (dates == latest_m)
+            return df[mask]
+
+        mask = valid_mask & (dates >= s_dt) & (dates <= e_dt)
+        return df[mask]
     except Exception as e:
         logger.warning(f"Error applying date filter for date_column='{date_column}', timeframe='{timeframe}': {e}")
         return df
-
-    return df
 
 
 def get_facilities_list() -> List[Dict[str, Any]]:
@@ -379,7 +433,13 @@ def get_executive_summary(
             if df_adm_active is not None and not df_adm_active.empty and 'bed_id' in df_adm_active.columns:
                 if facility_id != 'all' and 'facility_id' in df_adm_active.columns:
                     df_adm_active = df_adm_active[df_adm_active['facility_id'] == facility_id]
-                occupied_beds = float(df_adm_active['bed_id'].dropna().nunique())
+                s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+                if s_dt is not None and e_dt is not None and 'admission_date' in df_adm_active.columns:
+                    adm_dates = pd.to_datetime(df_adm_active['admission_date'], errors='coerce')
+                    dis_dates = pd.to_datetime(df_adm_active['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_active.columns else adm_dates
+                    active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+                    df_adm_active = df_adm_active[active_mask]
+                occupied_beds = float(df_adm_active['bed_id'].dropna().nunique()) if not df_adm_active.empty else 0.0
         occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0.0
 
         rev_val = float(bil_row.get('total_revenue') or 0)
@@ -462,6 +522,7 @@ def get_executive_summary(
         if df_bed is not None: df_bed = df_bed[df_bed['facility_id'] == facility_id]
 
     # Apply date filters
+    df_adm_raw = df_adm.copy() if df_adm is not None else pd.DataFrame()
     df_adm = _apply_date_filter(df_adm, 'admission_date', timeframe, start_date, end_date)
     df_bil = _apply_date_filter(df_bil, 'bill_date', timeframe, start_date, end_date)
     df_clm = _apply_date_filter(df_clm, 'submission_date', timeframe, start_date, end_date)
@@ -481,8 +542,15 @@ def get_executive_summary(
 
     total_beds = len(df_bed) if df_bed is not None else 0
     occupied_beds = len(df_bed[df_bed['current_status'] == 'Occupied']) if df_bed is not None and not df_bed.empty else 0
-    if occupied_beds == 0 and df_adm is not None and not df_adm.empty and 'bed_id' in df_adm.columns:
-        occupied_beds = df_adm['bed_id'].dropna().nunique()
+    if occupied_beds == 0 and total_beds > 0:
+        s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+        if s_dt is not None and e_dt is not None and df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
+            adm_dates = pd.to_datetime(df_adm_raw['admission_date'], errors='coerce')
+            dis_dates = pd.to_datetime(df_adm_raw['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_raw.columns else adm_dates
+            active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+            occupied_beds = df_adm_raw.loc[active_mask, 'bed_id'].dropna().nunique()
+        elif df_adm is not None and not df_adm.empty and 'bed_id' in df_adm.columns:
+            occupied_beds = df_adm['bed_id'].dropna().nunique()
     occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0.0
 
     health_score = min(100.0, max(0.0, round(100.0 - (denial_rate * 1.5) - (avg_ed_wait / 5), 1)))
@@ -614,12 +682,22 @@ def get_facility_comparison(
     Returns comparative performance metrics across all 5 facilities.
     """
     df_fac = _load_table('facilities')
+    df_adm_raw = _load_table('admissions')
     df_adm = _load_table('admissions')
     df_bil = _load_table('billing')
     df_clm = _load_table('claims')
     df_bed = _load_table('beds')
     
     if df_fac is None: return []
+
+    s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+    if s_dt is not None and e_dt is not None and df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
+        adm_dates = pd.to_datetime(df_adm_raw['admission_date'], errors='coerce')
+        dis_dates = pd.to_datetime(df_adm_raw['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_raw.columns else adm_dates
+        active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+        df_adm_active = df_adm_raw[active_mask]
+    else:
+        df_adm_active = df_adm
 
     df_adm = _apply_date_filter(df_adm, 'admission_date', timeframe, start_date, end_date)
     df_bil = _apply_date_filter(df_bil, 'bill_date', timeframe, start_date, end_date)
@@ -631,6 +709,7 @@ def get_facility_comparison(
         name = str(f['facility_name'])
         
         f_adm = df_adm[df_adm['facility_id'].astype(str) == fac_id] if df_adm is not None and not df_adm.empty and 'facility_id' in df_adm.columns else pd.DataFrame()
+        f_adm_act = df_adm_active[df_adm_active['facility_id'].astype(str) == fac_id] if df_adm_active is not None and not df_adm_active.empty and 'facility_id' in df_adm_active.columns else pd.DataFrame()
         f_bil = df_bil[df_bil['facility_id'].astype(str) == fac_id] if df_bil is not None and not df_bil.empty and 'facility_id' in df_bil.columns else pd.DataFrame()
         f_clm = df_clm[df_clm['facility_id'].astype(str) == fac_id] if df_clm is not None and not df_clm.empty and 'facility_id' in df_clm.columns else pd.DataFrame()
         f_bed = df_bed[df_bed['facility_id'].astype(str) == fac_id] if df_bed is not None and not df_bed.empty and 'facility_id' in df_bed.columns else pd.DataFrame()
@@ -642,8 +721,8 @@ def get_facility_comparison(
 
         tot_beds = len(f_bed)
         occ_beds = len(f_bed[f_bed['current_status'] == 'Occupied']) if not f_bed.empty else 0
-        if occ_beds == 0 and not f_adm.empty and 'bed_id' in f_adm.columns:
-            occ_beds = f_adm['bed_id'].dropna().nunique()
+        if occ_beds == 0 and not f_adm_act.empty and 'bed_id' in f_adm_act.columns:
+            occ_beds = f_adm_act['bed_id'].dropna().nunique()
         occ_rate = round((occ_beds / tot_beds * 100), 1) if tot_beds > 0 else 0.0
 
         res.append({
@@ -1011,6 +1090,8 @@ def get_pharmacy_inventory_intelligence(
         df_disp = df_disp[df_disp['facility_id'].astype(str) == str(facility_id)]
     if facility_id != 'all' and df_batch is not None and not df_batch.empty:
         df_batch = df_batch[df_batch['facility_id'].astype(str) == str(facility_id)]
+
+    df_disp = _apply_date_filter(df_disp, 'dispense_date', timeframe, start_date, end_date)
 
     if df_inv is None or df_inv.empty:
         return {
@@ -2608,6 +2689,8 @@ def get_operations_drilldown(
         df_adm = _apply_date_filter(df_adm, 'admission_date', timeframe, start_date, end_date)
     if df_clm is not None and not df_clm.empty:
         df_clm = _apply_date_filter(df_clm, 'submission_date', timeframe, start_date, end_date)
+    if df_ed is not None and not df_ed.empty:
+        df_ed = _apply_date_filter(df_ed, 'arrival_datetime', timeframe, start_date, end_date)
 
     # 1. Facility list with verified revenue and health
     facilities_list = []
@@ -2711,14 +2794,24 @@ def get_operations_drilldown(
             dept_id = str(r['department_id'])
             dept_name = str(r.get('department_name') or dept_id)
             spec = str(r.get('specialization', dept_name))
-            exp_yrs = int(r.get('experience_years', 0))
+            exp_val = pd.to_numeric(r.get('experience_years'), errors='coerce')
+            exp_yrs = int(exp_val) if pd.notna(exp_val) else 0
             emp_type = str(r.get('employment_type', 'Full-Time'))
 
-            pts = int(r.get('patients_seen') or 0)
-            util = round(float(r.get('avg_utilization') or 0.0), 1)
-            rev_paid = float(r.get('revenue_paid') or 0.0)
-            ot_hrs = round(float(r.get('overtime_hours') or 0.0), 1)
-            surg = int(r.get('surgeries') or 0)
+            raw_pts = pd.to_numeric(r.get('patients_seen'), errors='coerce')
+            pts = int(raw_pts) if pd.notna(raw_pts) else 0
+
+            raw_util = pd.to_numeric(r.get('avg_utilization'), errors='coerce')
+            util = round(float(raw_util), 1) if pd.notna(raw_util) else 0.0
+
+            raw_rev = pd.to_numeric(r.get('revenue_paid'), errors='coerce')
+            rev_paid = float(raw_rev) if pd.notna(raw_rev) else 0.0
+
+            raw_ot = pd.to_numeric(r.get('overtime_hours'), errors='coerce')
+            ot_hrs = round(float(raw_ot), 1) if pd.notna(raw_ot) else 0.0
+
+            raw_surg = pd.to_numeric(r.get('surgeries'), errors='coerce')
+            surg = int(raw_surg) if pd.notna(raw_surg) else 0
 
             providers_list.append({
                 'id': did,
@@ -2781,6 +2874,7 @@ def get_medical_coding_intelligence(
         df_discharge = df_discharge[df_discharge['facility_id'] == facility_id]
 
     df_claims = _apply_date_filter(df_claims, 'submission_date', timeframe, start_date, end_date)
+    df_discharge = _apply_date_filter(df_discharge, 'actual_discharge_date', timeframe, start_date, end_date)
 
     if df_claims is None or df_claims.empty:
         return {
@@ -2880,6 +2974,7 @@ def get_emergency_critical_intelligence(
         df_beds = df_beds[df_beds['facility_id'].astype(str) == str(facility_id)]
 
     df_ed = _apply_date_filter(df_ed, 'arrival_datetime', timeframe, start_date, end_date)
+    df_icu = _apply_date_filter(df_icu, 'admission_datetime', timeframe, start_date, end_date)
 
     if df_ed is None or df_ed.empty:
         return {
@@ -2991,6 +3086,7 @@ def get_patient_experience_intelligence(
         df_cp = df_cp[df_cp['facility_id'].astype(str) == str(facility_id)]
 
     df_fb = _apply_date_filter(df_fb, 'feedback_date', timeframe, start_date, end_date)
+    df_cp = _apply_date_filter(df_cp, 'complaint_date', timeframe, start_date, end_date)
 
     if df_fb is None or df_fb.empty:
         return {

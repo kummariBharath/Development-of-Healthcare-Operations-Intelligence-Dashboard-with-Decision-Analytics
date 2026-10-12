@@ -38,7 +38,7 @@ export const InsuranceClaimsAutomation: React.FC<InsuranceClaimsAutomationProps>
     setLoading(true);
     setError(null);
 
-    fetchClaimsIntelligence(selectedFacility)
+    fetchClaimsIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);

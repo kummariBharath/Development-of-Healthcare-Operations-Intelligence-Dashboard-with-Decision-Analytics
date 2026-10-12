@@ -213,6 +213,7 @@ export const MedOpsDashboard: React.FC = () => {
         isOpen={isDrilldownOpen}
         onClose={() => setIsDrilldownOpen(false)}
         initialFacilityId={drilldownFacilityId}
+        selectedTimeframe={selectedTimeframe}
       />
 
       {/* KPI Builder Modal */}

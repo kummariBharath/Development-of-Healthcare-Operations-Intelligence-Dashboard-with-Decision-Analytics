@@ -34,7 +34,7 @@ export const LaboratoryDiagnostics: React.FC<LaboratoryDiagnosticsProps> = ({
     setLoading(true);
     setError(null);
 
-    fetchLaboratoryIntelligence(selectedFacility)
+    fetchLaboratoryIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);

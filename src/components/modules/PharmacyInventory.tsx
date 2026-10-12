@@ -34,7 +34,7 @@ export const PharmacyInventory: React.FC<PharmacyInventoryProps> = ({
     setLoading(true);
     setError(null);
 
-    fetchPharmacyInventoryIntelligence(selectedFacility)
+    fetchPharmacyInventoryIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);

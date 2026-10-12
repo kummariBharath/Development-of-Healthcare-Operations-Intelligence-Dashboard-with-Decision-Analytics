@@ -23,12 +23,14 @@ interface EnterpriseDrilldownModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialFacilityId: string;
+  selectedTimeframe?: string;
 }
 
 export const EnterpriseDrilldownModal: React.FC<EnterpriseDrilldownModalProps> = ({
   isOpen,
   onClose,
-  initialFacilityId
+  initialFacilityId,
+  selectedTimeframe = 'realtime'
 }) => {
   const [selectedFacility, setSelectedFacility] = useState<string>(initialFacilityId || 'all');
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export const EnterpriseDrilldownModal: React.FC<EnterpriseDrilldownModalProps> =
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchOperationsDrilldown(selectedFacility, selectedDept);
+      const res = await fetchOperationsDrilldown(selectedFacility, selectedDept, selectedTimeframe);
       setData(res);
     } catch (err: any) {
       console.error('Failed to load drilldown data:', err);
@@ -60,7 +62,7 @@ export const EnterpriseDrilldownModal: React.FC<EnterpriseDrilldownModalProps> =
     if (isOpen) {
       loadDrilldownData();
     }
-  }, [isOpen, selectedFacility, selectedDept]);
+  }, [isOpen, selectedFacility, selectedDept, selectedTimeframe]);
 
   if (!isOpen) return null;
 

@@ -38,7 +38,7 @@ export const BillingRevenueIntelligence: React.FC<BillingRevenueIntelligenceProp
     setLoading(true);
     setError(null);
 
-    fetchBillingIntelligence(selectedFacility)
+    fetchBillingIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);

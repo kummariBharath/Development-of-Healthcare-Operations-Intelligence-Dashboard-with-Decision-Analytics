@@ -40,7 +40,7 @@ export const PatientOperations: React.FC<PatientOperationsProps> = ({
     setLoading(true);
     setError(null);
 
-    fetchPatientOpsIntelligence(selectedFacility)
+    fetchPatientOpsIntelligence(selectedFacility, selectedTimeframe)
       .then((res) => {
         if (!isMounted) return;
         setData(res);
