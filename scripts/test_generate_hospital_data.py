@@ -450,6 +450,18 @@ class TestValidateMode(unittest.TestCase):
         self.assertFalse(res.is_valid)
         self.assertGreater(len(res.errors), 0)
 
+    def test_write_dataset_csv_refuses_to_overwrite_existing_file(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            file_path = Path(tmp_dir) / "test.csv"
+            # Write initial file
+            write_dataset_csv([{"col": "val1"}], ["col"], file_path)
+            self.assertTrue(file_path.exists())
+
+            # Attempting to overwrite must raise FileExistsError
+            with self.assertRaises(FileExistsError) as ctx:
+                write_dataset_csv([{"col": "val2"}], ["col"], file_path)
+            self.assertIn("LOCAL FILE COLLISION REFUSED", str(ctx.exception))
+
 
 class TestUploadSafetyAndConfirmation(unittest.TestCase):
     """Verifies confirmation prompts, collision detection, and upload mocking with Glue verification."""

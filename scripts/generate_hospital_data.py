@@ -315,7 +315,7 @@ EXCLUDED_DATASETS_RATIONALE = {
 
 # Batch size constraints
 MIN_BATCH_SIZE = 1
-MAX_BATCH_SIZE = 10000
+MAX_BATCH_SIZE = 100000
 DEFAULT_BATCH_SIZE = 50
 
 
@@ -500,12 +500,40 @@ class HospitalDataGenerator:
 
         return results
 
+    def _sample_date(self) -> datetime.date:
+        """
+        Stratified temporal distribution across 2026 reporting periods through current date (2026-10-14):
+          - ~3%  : Today (2026-10-14)
+          - ~10% : This Week (2026-10-07 to 2026-10-13)
+          - ~15% : October MTD (2026-10-01 to 2026-10-06)
+          - ~25% : September 2026 ("This Month" in UI / closed month: 2026-09-01 to 2026-09-30)
+          - ~22% : Q3 Remainder (July - August 2026: 2026-07-01 to 2026-08-31)
+          - ~25% : YTD Prior Quarters (January - June 2026: 2026-01-01 to 2026-06-30)
+        """
+        p = random.random()
+        if p < 0.03:
+            return datetime.date(2026, 10, 14)
+        elif p < 0.13:
+            offset = random.randint(0, 6)
+            return datetime.date(2026, 10, 7) + datetime.timedelta(days=offset)
+        elif p < 0.28:
+            offset = random.randint(0, 5)
+            return datetime.date(2026, 10, 1) + datetime.timedelta(days=offset)
+        elif p < 0.53:
+            offset = random.randint(0, 29)
+            return datetime.date(2026, 9, 1) + datetime.timedelta(days=offset)
+        elif p < 0.75:
+            offset = random.randint(0, 61)
+            return datetime.date(2026, 7, 1) + datetime.timedelta(days=offset)
+        else:
+            offset = random.randint(0, 180)
+            return datetime.date(2026, 1, 1) + datetime.timedelta(days=offset)
+
     def _generate_admissions(self, count: int) -> List[Dict[str, Any]]:
         records = []
-        base_date = datetime.date(2026, 1, 1)
 
         for i in range(1, count + 1):
-            adm_id = f"SYN-ADM-{self.run_id}-{i:04d}"
+            adm_id = f"SYN-ADM-{self.run_id}-{i:05d}"
             pat_id = f"SYN-PAT-{self.run_id}-{(i % 500) + 1:04d}"
             fac_id = random.choice(self.ref.facilities)
 
@@ -518,8 +546,7 @@ class HospitalDataGenerator:
             bed_id = random.choice(fac_beds) if fac_beds else f"BED{random.randint(1, 900):04d}"
 
             # Dates & Length of Stay
-            days_offset = random.randint(0, 270)
-            adm_date = base_date + datetime.timedelta(days=days_offset)
+            adm_date = self._sample_date()
             los_days = round(random.uniform(0.5, 14.0), 1)
             dis_date = adm_date + datetime.timedelta(days=max(1, int(los_days)))
 
@@ -539,10 +566,9 @@ class HospitalDataGenerator:
 
     def _generate_appointments(self, count: int) -> List[Dict[str, Any]]:
         records = []
-        base_date = datetime.date(2026, 1, 1)
 
         for i in range(1, count + 1):
-            app_id = f"SYN-APP-{self.run_id}-{i:04d}"
+            app_id = f"SYN-APP-{self.run_id}-{i:05d}"
             pat_id = f"SYN-PAT-{self.run_id}-{(i % 500) + 1:04d}"
 
             doc = random.choice(self.ref.doctors)
@@ -550,8 +576,7 @@ class HospitalDataGenerator:
             fac_id = doc["facility_id"]
             dep_id = doc["department_id"]
 
-            days_offset = random.randint(0, 270)
-            app_date = base_date + datetime.timedelta(days=days_offset)
+            app_date = self._sample_date()
             hour = random.randint(8, 17)
             minute = random.choice([0, 15, 30, 45])
             app_time = f"{hour:02d}:{minute:02d}"
@@ -574,14 +599,14 @@ class HospitalDataGenerator:
     def _generate_billing(self, appointments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         records = []
         for i, app in enumerate(appointments, start=1):
-            bill_id = f"SYN-BIL-{self.run_id}-{i:04d}"
+            bill_id = f"SYN-BIL-{self.run_id}-{i:05d}"
 
             # Financial calculations with exact balances
             gross = round(random.uniform(500.0, 5000.0), 2)
             discount = round(gross * random.choice([0.0, 0.05, 0.10, 0.15]), 2)
             net = round(gross - discount, 2)
 
-            has_insurance = random.random() < 0.65
+            has_insurance = random.random() < 0.70
             if has_insurance:
                 ins = round(net * random.uniform(0.60, 0.90), 2)
                 pat = round(net - ins, 2)
@@ -628,7 +653,7 @@ class HospitalDataGenerator:
         claim_idx = 1
 
         for bill in insured_bills:
-            claim_id = f"SYN-CLM-{self.run_id}-{claim_idx:04d}"
+            claim_id = f"SYN-CLM-{self.run_id}-{claim_idx:05d}"
             claim_idx += 1
 
             claimed = bill["insurance_amount"]
@@ -672,10 +697,9 @@ class HospitalDataGenerator:
 
     def _generate_emergency_visits(self, count: int) -> List[Dict[str, Any]]:
         records = []
-        base_date = datetime.datetime(2026, 1, 1, 0, 0, 0)
 
         for i in range(1, count + 1):
-            ev_id = f"SYN-EV-{self.run_id}-{i:04d}"
+            ev_id = f"SYN-EV-{self.run_id}-{i:05d}"
             pat_id = f"SYN-PAT-{self.run_id}-{(i % 500) + 1:04d}"
             fac_id = random.choice(self.ref.facilities)
 
@@ -683,8 +707,11 @@ class HospitalDataGenerator:
             fac_deps = [d["department_id"] for d in self.ref.departments if d["facility_id"] == fac_id]
             dep_id = "DEP008" if "DEP008" in fac_deps else (fac_deps[0] if fac_deps else "DEP008")
 
-            seconds_offset = random.randint(0, 270 * 86400)
-            arrival = base_date + datetime.timedelta(seconds=seconds_offset)
+            d = self._sample_date()
+            hour = random.randint(0, 23)
+            minute = random.randint(0, 59)
+            second = random.randint(0, 59)
+            arrival = datetime.datetime(d.year, d.month, d.day, hour, minute, second)
             wait_min = random.randint(5, 90)
             treat_min = random.randint(20, 180)
             discharge = arrival + datetime.timedelta(minutes=(wait_min + treat_min))
@@ -711,18 +738,16 @@ class HospitalDataGenerator:
 
     def _generate_inventory_transactions(self, count: int) -> List[Dict[str, Any]]:
         records = []
-        base_date = datetime.date(2026, 1, 1)
 
         for i in range(1, count + 1):
-            txn_id = f"SYN-TXN-{self.run_id}-{i:04d}"
+            txn_id = f"SYN-TXN-{self.run_id}-{i:05d}"
             fac_id = random.choice(self.ref.facilities)
             med = random.choice(self.ref.medicines)
             med_id = med["medicine_id"]
             vnd_id = med.get("vendor_id") or random.choice(self.ref.vendors)
             unit_cost = med.get("unit_cost", 100.0)
 
-            days_offset = random.randint(0, 270)
-            txn_date = base_date + datetime.timedelta(days=days_offset)
+            txn_date = self._sample_date()
             qty = random.randint(10, 150)
             val = round(qty * unit_cost, 2)
 
@@ -1165,6 +1190,11 @@ class GlueTableVerifier:
 def write_dataset_csv(records: List[Dict[str, Any]], columns: List[str], file_path: Path) -> int:
     """Writes dataset records to a CSV file with an explicit column header."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
+    if file_path.exists():
+        raise FileExistsError(
+            f"LOCAL FILE COLLISION REFUSED: Target file '{file_path}' already exists. "
+            f"Generation aborted to prevent overwriting existing data."
+        )
     with open(file_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()

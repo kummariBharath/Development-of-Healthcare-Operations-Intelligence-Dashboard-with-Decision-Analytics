@@ -185,7 +185,48 @@ def _clean_df_types(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def _load_table(table_name: str, max_results: int = 15000) -> pd.DataFrame:
+# Sizing limits tailored to table cardinality to preserve memory and prevent silent truncation:
+_TABLE_MAX_RESULTS = {
+    'appointments': 50000,
+    'billing': 50000,
+    'claims': 30000,
+    'admissions': 30000,
+    'emergency_visits': 30000,
+    'inventory_transactions': 30000,
+    'lab_orders_results': 15000,
+    'lab_samples': 15000,
+    'prescriptions': 15000,
+    'pharmacy_dispensing': 15000,
+    'staff_attendance': 15000,
+    'staff_workload': 15000,
+    'doctor_workload': 10000,
+    'patient_feedback': 10000,
+    'discharge_records': 10000,
+    'bed_movements': 5000,
+    'patient_flow_events': 5000,
+    'patient_complaints': 5000,
+    'surgeries': 5000,
+    'financial_expenses': 5000,
+    'beds': 2000,
+    'patients': 5000,
+    'medicines': 1000,
+    'medicine_batches': 2000,
+    'inventory': 2000,
+    'quality_incidents': 2000,
+    'quality_audits': 2000,
+    'corrective_actions': 1000,
+    'purchase_orders': 2000,
+    'supply_chain_purchase_orders': 2000,
+    'staff': 1000,
+    'doctors': 500,
+    'departments': 100,
+    'facilities': 50,
+    'vendors': 100,
+    'vendor_performance': 100,
+    'financial_monthly': 200,
+}
+
+def _load_table(table_name: str, max_results: Optional[int] = None) -> pd.DataFrame:
     """
     Unified Production Data Retrieval Layer:
     Migrates dashboard data access to AWS Athena & Glue with S3 fail-safe:
@@ -197,6 +238,7 @@ def _load_table(table_name: str, max_results: int = 15000) -> pd.DataFrame:
     5. Clean empty DataFrame: Prevents 500 crashes / FileNotFoundError in production.
     """
     now = time.time()
+    effective_max = max_results if max_results is not None else _TABLE_MAX_RESULTS.get(table_name, 25000)
 
     # 1. Check in-memory cache
     if table_name in _TABLE_CACHE:
@@ -209,7 +251,7 @@ def _load_table(table_name: str, max_results: int = 15000) -> pd.DataFrame:
     # 2. Primary Production: Query Amazon Athena
     try:
         sql = f'SELECT * FROM "{table_name}"'
-        res = execute_athena_query(sql, max_results=max_results)
+        res = execute_athena_query(sql, max_results=effective_max)
         if res.get('status') == 'SUCCEEDED' and res.get('rows'):
             cols = res.get('columns', [])
             rows = res.get('rows', [])
@@ -298,7 +340,7 @@ def _get_timeframe_range(
         return None, None
 
     now = datetime.now()
-    ref_date = now.date() if now.year == 2026 else date(2026, 10, 12)
+    ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
 
     if timeframe == 'today':
         s_dt = pd.to_datetime(f"{ref_date} 00:00:00")
@@ -400,13 +442,39 @@ def get_executive_summary(
     """
     Aggregates Executive Command Center KPIs using Athena or dataset query.
     """
-    fac_filter = "" if facility_id == 'all' else f"WHERE facility_id = '{facility_id}'"
-    
-    # Try Athena first
-    sql_admissions = f"SELECT COUNT(*) as total_admissions, AVG(length_of_stay_days) as avg_los FROM admissions {fac_filter}"
-    sql_billing = f"SELECT SUM(net_amount) as total_revenue, SUM(gross_amount) as gross_revenue FROM billing {fac_filter}"
-    sql_claims = f"SELECT COUNT(*) as total_claims, SUM(CASE WHEN claim_status = 'Denied' THEN 1 ELSE 0 END) as denied_claims, SUM(claimed_amount) as total_claimed, SUM(CASE WHEN claim_status = 'Denied' THEN claimed_amount ELSE 0 END) as denied_amount FROM claims {fac_filter}"
-    sql_ed = f"SELECT AVG(waiting_time_minutes) as avg_ed_wait FROM emergency_visits {fac_filter}"
+    s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+
+    adm_where = []
+    bil_where = []
+    clm_where = []
+    ed_where = []
+
+    if facility_id != 'all':
+        adm_where.append(f"facility_id = '{facility_id}'")
+        bil_where.append(f"facility_id = '{facility_id}'")
+        clm_where.append(f"facility_id = '{facility_id}'")
+        ed_where.append(f"facility_id = '{facility_id}'")
+
+    if s_dt is not None and e_dt is not None:
+        s_date = s_dt.strftime('%Y-%m-%d')
+        e_date = e_dt.strftime('%Y-%m-%d')
+        s_time = s_dt.strftime('%Y-%m-%d %H:%M:%S')
+        e_time = e_dt.strftime('%Y-%m-%d %H:%M:%S')
+        adm_where.append(f"admission_date >= '{s_date}' AND admission_date <= '{e_date}'")
+        bil_where.append(f"bill_date >= '{s_date}' AND bill_date <= '{e_date}'")
+        clm_where.append(f"submission_date >= '{s_date}' AND submission_date <= '{e_date}'")
+        ed_where.append(f"arrival_datetime >= '{s_time}' AND arrival_datetime <= '{e_time}'")
+
+    adm_clause = f"WHERE {' AND '.join(adm_where)}" if adm_where else ""
+    bil_clause = f"WHERE {' AND '.join(bil_where)}" if bil_where else ""
+    clm_clause = f"WHERE {' AND '.join(clm_where)}" if clm_where else ""
+    ed_clause = f"WHERE {' AND '.join(ed_where)}" if ed_where else ""
+
+    # Try Athena first (SQL-level aggregation avoiding high memory consumption)
+    sql_admissions = f"SELECT COUNT(*) as total_admissions, AVG(length_of_stay_days) as avg_los FROM admissions {adm_clause}"
+    sql_billing = f"SELECT SUM(net_amount) as total_revenue, SUM(gross_amount) as gross_revenue FROM billing {bil_clause}"
+    sql_claims = f"SELECT COUNT(*) as total_claims, SUM(CASE WHEN claim_status = 'Denied' THEN 1 ELSE 0 END) as denied_claims, SUM(claimed_amount) as total_claimed, SUM(CASE WHEN claim_status = 'Denied' THEN claimed_amount ELSE 0 END) as denied_amount FROM claims {clm_clause}"
+    sql_ed = f"SELECT AVG(waiting_time_minutes) as avg_ed_wait FROM emergency_visits {ed_clause}"
     res_adm = execute_athena_query(sql_admissions)
     
     if res_adm['status'] == 'SUCCEEDED':
@@ -1177,9 +1245,31 @@ def get_financial_intelligence(
     Calculates Financial Intelligence & P&L Statement metrics directly from dataset tables:
     financial_monthly, financial_expenses, and billing.
     """
-    fac_filter = "" if facility_id == 'all' else f"WHERE facility_id = '{facility_id}'"
-    
-    # Try Athena Execution first
+    s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+
+    fm_where = []
+    bil_where = []
+    exp_where = []
+
+    if facility_id != 'all':
+        fm_where.append(f"facility_id = '{facility_id}'")
+        bil_where.append(f"facility_id = '{facility_id}'")
+        exp_where.append(f"facility_id = '{facility_id}'")
+
+    if s_dt is not None and e_dt is not None:
+        s_date = s_dt.strftime('%Y-%m-%d')
+        e_date = e_dt.strftime('%Y-%m-%d')
+        s_month = s_dt.strftime('%Y-%m')
+        e_month = e_dt.strftime('%Y-%m')
+        fm_where.append(f"month >= '{s_month}' AND month <= '{e_month}'")
+        bil_where.append(f"bill_date >= '{s_date}' AND bill_date <= '{e_date}'")
+        exp_where.append(f"expense_date >= '{s_date}' AND expense_date <= '{e_date}'")
+
+    fm_clause = f"WHERE {' AND '.join(fm_where)}" if fm_where else ""
+    bil_clause = f"WHERE {' AND '.join(bil_where)}" if bil_where else ""
+    exp_clause = f"WHERE {' AND '.join(exp_where)}" if exp_where else ""
+
+    # Try Athena Execution first (SQL-level aggregation)
     sql_monthly = f"""
         SELECT 
             SUM(revenue) as total_revenue,
@@ -1191,7 +1281,7 @@ def get_financial_intelligence(
             SUM(budget_cost) as total_budget_cost,
             SUM(revenue_variance) as total_revenue_variance,
             SUM(cost_variance) as total_cost_variance
-        FROM financial_monthly {fac_filter}
+        FROM financial_monthly {fm_clause}
     """
     sql_billing = f"""
         SELECT 
@@ -1199,11 +1289,11 @@ def get_financial_intelligence(
             SUM(discount_amount) as total_discounts,
             SUM(net_amount) as net_billed,
             SUM(paid_amount) as total_paid
-        FROM billing {fac_filter}
+        FROM billing {bil_clause}
     """
     sql_expenses = f"""
         SELECT expense_category, SUM(amount) as category_amount
-        FROM financial_expenses {fac_filter}
+        FROM financial_expenses {exp_clause}
         GROUP BY expense_category
     """
 
@@ -1466,12 +1556,28 @@ def get_supply_chain_vendors(
     Calculates Supply Chain & Vendor Management metrics from real dataset tables:
     vendors, vendor_performance, purchase_orders, and supply_chain_purchase_orders.
     """
-    fac_filter_po = "" if facility_id == 'all' else f"WHERE facility_id = '{facility_id}'"
-    
-    # Try Athena Execution first
+    s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
+
+    po_where = []
+    spo_where = []
+
+    if facility_id != 'all':
+        po_where.append(f"facility_id = '{facility_id}'")
+        spo_where.append(f"facility_id = '{facility_id}'")
+
+    if s_dt is not None and e_dt is not None:
+        s_date = s_dt.strftime('%Y-%m-%d')
+        e_date = e_dt.strftime('%Y-%m-%d')
+        po_where.append(f"order_date >= '{s_date}' AND order_date <= '{e_date}'")
+        spo_where.append(f"po_date >= '{s_date}' AND po_date <= '{e_date}'")
+
+    po_clause = f"WHERE {' AND '.join(po_where)}" if po_where else ""
+    spo_clause = f"WHERE {' AND '.join(spo_where)}" if spo_where else ""
+
+    # Try Athena Execution first (SQL-level aggregation)
     sql_vp = "SELECT vendor_id, vendor_name, vendor_category, rating, on_time_delivery_pct, quality_score, avg_lead_time_days, risk_level FROM vendor_performance"
-    sql_po = f"SELECT vendor_id, SUM(order_value) as total_val, COUNT(*) as cnt FROM purchase_orders {fac_filter_po} GROUP BY vendor_id"
-    sql_spo = f"SELECT vendor_id, SUM(order_amount) as total_val, COUNT(*) as cnt FROM supply_chain_purchase_orders {fac_filter_po} GROUP BY vendor_id"
+    sql_po = f"SELECT vendor_id, SUM(order_value) as total_val, COUNT(*) as cnt FROM purchase_orders {po_clause} GROUP BY vendor_id"
+    sql_spo = f"SELECT vendor_id, SUM(order_amount) as total_val, COUNT(*) as cnt FROM supply_chain_purchase_orders {spo_clause} GROUP BY vendor_id"
 
     res_vp = execute_athena_query(sql_vp)
 
