@@ -193,30 +193,31 @@ _TABLE_MAX_RESULTS = {
     'admissions': 30000,
     'emergency_visits': 30000,
     'inventory_transactions': 30000,
-    'lab_orders_results': 15000,
-    'lab_samples': 15000,
-    'prescriptions': 15000,
-    'pharmacy_dispensing': 15000,
-    'staff_attendance': 15000,
-    'staff_workload': 15000,
-    'doctor_workload': 10000,
-    'patient_feedback': 10000,
+    'lab_orders_results': 25000,
+    'lab_samples': 25000,
+    'prescriptions': 25000,
+    'pharmacy_dispensing': 20000,
+    'staff_attendance': 25000,
+    'staff_workload': 20000,
+    'doctor_workload': 20000,
+    'nurse_shifts': 15000,
+    'patient_feedback': 15000,
     'discharge_records': 10000,
     'bed_movements': 5000,
     'patient_flow_events': 5000,
-    'patient_complaints': 5000,
+    'patient_complaints': 8000,
     'surgeries': 5000,
     'financial_expenses': 5000,
     'beds': 2000,
     'patients': 5000,
     'medicines': 1000,
-    'medicine_batches': 2000,
+    'medicine_batches': 5000,
     'inventory': 2000,
-    'quality_incidents': 2000,
-    'quality_audits': 2000,
-    'corrective_actions': 1000,
-    'purchase_orders': 2000,
-    'supply_chain_purchase_orders': 2000,
+    'quality_incidents': 5000,
+    'quality_audits': 5000,
+    'corrective_actions': 3000,
+    'purchase_orders': 10000,
+    'supply_chain_purchase_orders': 10000,
     'staff': 1000,
     'doctors': 500,
     'departments': 100,
@@ -263,6 +264,9 @@ def _load_table(table_name: str, max_results: Optional[int] = None) -> pd.DataFr
                 data_rows = rows[1:]
                 df = pd.DataFrame(data_rows, columns=cols)
                 df.columns = real_cols
+                # Discard any secondary header rows from concatenated CSV files
+                if len(real_cols) > 0 and real_cols[0] in df.columns:
+                    df = df[df[real_cols[0]] != real_cols[0]]
             else:
                 df = pd.DataFrame(rows)
 
