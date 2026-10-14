@@ -336,29 +336,40 @@ def _get_timeframe_range(
             e_dt = e_dt + pd.Timedelta(days=1, microseconds=-1)
         return s_dt, e_dt
 
-    if not timeframe or timeframe in ['realtime', 'all']:
+    if not timeframe:
+        return None, None
+    tf = timeframe.strip().lower().replace("_", "-")
+    if tf in ['realtime', 'all']:
         return None, None
 
     now = datetime.now()
     ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
 
-    if timeframe == 'today':
+    if tf in ['today', '1d', '24h']:
         s_dt = pd.to_datetime(f"{ref_date} 00:00:00")
         e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
         return s_dt, e_dt
-    elif timeframe == 'weekly':
+    elif tf in ['weekly', 'week', 'this-week', 'last-7-days', '7d']:
         s_dt = pd.to_datetime(f"{ref_date - timedelta(days=7)} 00:00:00")
         e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
         return s_dt, e_dt
-    elif timeframe == 'monthly':
+    elif tf in ['30d', 'last-30-days']:
+        s_dt = pd.to_datetime(f"{ref_date - timedelta(days=30)} 00:00:00")
+        e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+        return s_dt, e_dt
+    elif tf in ['this-month', 'oct-2026', 'october-2026']:
+        s_dt = pd.to_datetime("2026-10-01 00:00:00")
+        e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+        return s_dt, e_dt
+    elif tf in ['monthly', 'month', 'sep-2026', 'september-2026', 'sep']:
         s_dt = pd.to_datetime("2026-09-01 00:00:00")
         e_dt = pd.to_datetime("2026-09-30 23:59:59.999999")
         return s_dt, e_dt
-    elif timeframe == 'quarterly':
+    elif tf in ['quarterly', 'quarter', 'q3', 'q3-2026']:
         s_dt = pd.to_datetime("2026-07-01 00:00:00")
         e_dt = pd.to_datetime("2026-09-30 23:59:59.999999")
         return s_dt, e_dt
-    elif timeframe == 'ytd':
+    elif tf in ['ytd', 'year-to-date', 'ytd-2026']:
         s_dt = pd.to_datetime("2026-01-01 00:00:00")
         e_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
         return s_dt, e_dt
