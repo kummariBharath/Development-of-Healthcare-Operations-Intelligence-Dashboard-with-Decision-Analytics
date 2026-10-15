@@ -154,8 +154,8 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
               <div className="text-2xl font-bold text-emerald-400 font-mono">
                 {kpis?.avgOnTimeDeliveryPct ?? 0}%
               </div>
-              <p className="text-[10px] text-teal-400 font-semibold">
-                Avg Quality Score: {kpis?.avgQualityScore ?? 0}%
+              <p className="text-[10px] text-emerald-300 font-semibold">
+                Across vendor fulfillment SLAs
               </p>
             </div>
 
@@ -172,16 +172,16 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
               </p>
             </div>
 
-            {/* Defect / Damage Rate Card (Not available from dataset) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1 opacity-80">
+            {/* Vendor Quality Score Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Defect / Damage Rate
+                Avg Vendor Quality Score
               </span>
-              <div className="text-sm font-bold text-slate-400 font-mono py-1.5">
-                {kpis?.defectRateFormatted || 'Not available from dataset'}
+              <div className="text-2xl font-bold text-teal-400 font-mono">
+                {kpis?.avgQualityScore != null ? `${kpis.avgQualityScore}%` : 'N/A'}
               </div>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Quality Defect Metric: N/A (Not in dataset)
+              <p className="text-[10px] text-teal-300 font-mono">
+                Evaluated from supplier performance audits
               </p>
             </div>
           </div>

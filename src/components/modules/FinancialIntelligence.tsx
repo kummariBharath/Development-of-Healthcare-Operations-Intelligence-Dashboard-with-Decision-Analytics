@@ -118,7 +118,7 @@ export const FinancialIntelligence: React.FC<FinancialIntelligenceProps> = ({
       {!loading && !error && data && (
         <>
           {/* Financial Overview KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Operating Profit / EBITDA Proxy Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -146,19 +146,6 @@ export const FinancialIntelligence: React.FC<FinancialIntelligenceProps> = ({
                 (kpis?.revenueVariance || 0) >= 0 ? 'text-cyan-400' : 'text-rose-400'
               }`}>
                 {(kpis?.revenueVariance || 0) >= 0 ? 'Favorable Revenue' : 'Unfavorable Revenue'} ({kpis?.revenueVariancePct}% vs Budget)
-              </p>
-            </div>
-
-            {/* Days Cash on Hand Card (Not available from dataset) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1 opacity-80">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Days Cash on Hand
-              </span>
-              <div className="text-sm font-bold text-slate-400 font-mono py-1.5">
-                {kpis?.daysCashOnHandFormatted || 'Not available from dataset'}
-              </div>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Liquidity Metric: N/A (Not in dataset)
               </p>
             </div>
 

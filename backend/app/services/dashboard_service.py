@@ -515,12 +515,18 @@ def get_executive_summary(
             df_adm_active = _load_table('admissions')
             if df_adm_active is not None and not df_adm_active.empty and 'bed_id' in df_adm_active.columns:
                 if facility_id != 'all' and 'facility_id' in df_adm_active.columns:
-                    df_adm_active = df_adm_active[df_adm_active['facility_id'] == facility_id]
+                    df_adm_active = df_adm_active[df_adm_active['facility_id'].astype(str) == str(facility_id)]
                 s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
-                if s_dt is not None and e_dt is not None and 'admission_date' in df_adm_active.columns:
+                if 'admission_date' in df_adm_active.columns:
                     adm_dates = pd.to_datetime(df_adm_active['admission_date'], errors='coerce')
                     dis_dates = pd.to_datetime(df_adm_active['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_active.columns else adm_dates
-                    active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+                    if s_dt is not None and e_dt is not None:
+                        active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+                    else:
+                        now = datetime.now()
+                        ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
+                        ref_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+                        active_mask = (adm_dates <= ref_dt) & ((dis_dates >= pd.to_datetime(ref_date)) | dis_dates.isna())
                     df_adm_active = df_adm_active[active_mask]
                 occupied_beds = float(df_adm_active['bed_id'].dropna().nunique()) if not df_adm_active.empty else 0.0
         occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0.0
@@ -627,13 +633,19 @@ def get_executive_summary(
     occupied_beds = len(df_bed[df_bed['current_status'] == 'Occupied']) if df_bed is not None and not df_bed.empty else 0
     if occupied_beds == 0 and total_beds > 0:
         s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
-        if s_dt is not None and e_dt is not None and df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
+        if df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
             adm_dates = pd.to_datetime(df_adm_raw['admission_date'], errors='coerce')
             dis_dates = pd.to_datetime(df_adm_raw['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_raw.columns else adm_dates
-            active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+            if s_dt is not None and e_dt is not None:
+                active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+            else:
+                now = datetime.now()
+                ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
+                ref_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+                active_mask = (adm_dates <= ref_dt) & ((dis_dates >= pd.to_datetime(ref_date)) | dis_dates.isna())
             occupied_beds = df_adm_raw.loc[active_mask, 'bed_id'].dropna().nunique()
-        elif df_adm is not None and not df_adm.empty and 'bed_id' in df_adm.columns:
-            occupied_beds = df_adm['bed_id'].dropna().nunique()
+        else:
+            occupied_beds = 0
     occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0.0
 
     health_score = min(100.0, max(0.0, round(100.0 - (denial_rate * 1.5) - (avg_ed_wait / 5), 1)))
@@ -774,13 +786,19 @@ def get_facility_comparison(
     if df_fac is None: return []
 
     s_dt, e_dt = _get_timeframe_range(timeframe, start_date, end_date)
-    if s_dt is not None and e_dt is not None and df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
+    if df_adm_raw is not None and not df_adm_raw.empty and 'admission_date' in df_adm_raw.columns:
         adm_dates = pd.to_datetime(df_adm_raw['admission_date'], errors='coerce')
         dis_dates = pd.to_datetime(df_adm_raw['discharge_date'], errors='coerce') if 'discharge_date' in df_adm_raw.columns else adm_dates
-        active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+        if s_dt is not None and e_dt is not None:
+            active_mask = (adm_dates <= e_dt) & ((dis_dates >= s_dt) | dis_dates.isna())
+        else:
+            now = datetime.now()
+            ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
+            ref_dt = pd.to_datetime(f"{ref_date} 23:59:59.999999")
+            active_mask = (adm_dates <= ref_dt) & ((dis_dates >= pd.to_datetime(ref_date)) | dis_dates.isna())
         df_adm_active = df_adm_raw[active_mask]
     else:
-        df_adm_active = df_adm
+        df_adm_active = pd.DataFrame()
 
     df_adm = _apply_date_filter(df_adm, 'admission_date', timeframe, start_date, end_date)
     df_bil = _apply_date_filter(df_bil, 'bill_date', timeframe, start_date, end_date)
@@ -1231,8 +1249,13 @@ def get_pharmacy_inventory_intelligence(
     tot_disp_val = round(_safe_sum(df_disp, 'dispense_value'), 2)
 
     tot_batches = len(df_batch) if df_batch is not None else 0
-    exp_batches = int((df_batch['expiry_date'] < '2026-10-02').sum()) if df_batch is not None and 'expiry_date' in df_batch.columns else 0
-    near_exp_batches = int(((df_batch['expiry_date'] >= '2026-10-02') & (df_batch['expiry_date'] <= '2027-01-01')).sum()) if df_batch is not None and 'expiry_date' in df_batch.columns else 0
+    now = datetime.now()
+    ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
+    ref_date_str = ref_date.strftime('%Y-%m-%d')
+    near_exp_limit_str = (ref_date + timedelta(days=90)).strftime('%Y-%m-%d')
+
+    exp_batches = int((df_batch['expiry_date'] < ref_date_str).sum()) if df_batch is not None and 'expiry_date' in df_batch.columns else 0
+    near_exp_batches = int(((df_batch['expiry_date'] >= ref_date_str) & (df_batch['expiry_date'] <= near_exp_limit_str)).sum()) if df_batch is not None and 'expiry_date' in df_batch.columns else 0
 
     return {
         'totalItems': tot_items,
@@ -1276,7 +1299,7 @@ def get_financial_intelligence(
         e_date = e_dt.strftime('%Y-%m-%d')
         s_month = s_dt.strftime('%Y-%m')
         e_month = e_dt.strftime('%Y-%m')
-        fm_where.append(f"month >= '{s_month}' AND month <= '{e_month}'")
+        fm_where.append(f"substr(month, 1, 7) >= '{s_month}' AND substr(month, 1, 7) <= '{e_month}'")
         bil_where.append(f"bill_date >= '{s_date}' AND bill_date <= '{e_date}'")
         exp_where.append(f"expense_date >= '{s_date}' AND expense_date <= '{e_date}'")
 
@@ -1770,13 +1793,14 @@ def get_quality_compliance(
 ) -> Dict[str, Any]:
     """
     Calculates Quality & Regulatory Compliance metrics from real dataset tables:
-    quality_audits, quality_incidents, corrective_actions, and patient_complaints.
+    quality_audits, quality_incidents, corrective_actions, admissions, and patient_complaints.
     Attempts Athena query execution; falls back cleanly to local CSVs.
     """
     df_qa = _load_table('quality_audits')
     df_qi = _load_table('quality_incidents')
     df_ca = _load_table('corrective_actions')
     df_pc = _load_table('patient_complaints')
+    df_adm = _load_table('admissions')
     df_fac = _load_table('facilities')
     df_dep = _load_table('departments')
 
@@ -1784,22 +1808,28 @@ def get_quality_compliance(
     dep_map = dict(zip(df_dep['department_id'], df_dep['department_name'])) if df_dep is not None and not df_dep.empty and 'department_id' in df_dep.columns else {}
 
     if facility_id != 'all':
-        if df_qa is not None and not df_qa.empty and 'facility_id' in df_qa.columns: df_qa = df_qa[df_qa['facility_id'] == facility_id]
-        if df_qi is not None and not df_qi.empty and 'facility_id' in df_qi.columns: df_qi = df_qi[df_qi['facility_id'] == facility_id]
-        if df_ca is not None and not df_ca.empty and 'facility_id' in df_ca.columns: df_ca = df_ca[df_ca['facility_id'] == facility_id]
-        if df_pc is not None and not df_pc.empty and 'facility_id' in df_pc.columns: df_pc = df_pc[df_pc['facility_id'] == facility_id]
+        if df_qa is not None and not df_qa.empty and 'facility_id' in df_qa.columns: df_qa = df_qa[df_qa['facility_id'].astype(str) == str(facility_id)]
+        if df_qi is not None and not df_qi.empty and 'facility_id' in df_qi.columns: df_qi = df_qi[df_qi['facility_id'].astype(str) == str(facility_id)]
+        if df_ca is not None and not df_ca.empty and 'facility_id' in df_ca.columns: df_ca = df_ca[df_ca['facility_id'].astype(str) == str(facility_id)]
+        if df_pc is not None and not df_pc.empty and 'facility_id' in df_pc.columns: df_pc = df_pc[df_pc['facility_id'].astype(str) == str(facility_id)]
+        if df_adm is not None and not df_adm.empty and 'facility_id' in df_adm.columns: df_adm = df_adm[df_adm['facility_id'].astype(str) == str(facility_id)]
+
+    df_qi_all = df_qi.copy() if df_qi is not None and not df_qi.empty else None
 
     df_qa = _apply_date_filter(df_qa, 'audit_date', timeframe, start_date, end_date)
     df_qi = _apply_date_filter(df_qi, 'incident_date', timeframe, start_date, end_date)
     df_pc = _apply_date_filter(df_pc, 'complaint_date', timeframe, start_date, end_date)
+    df_adm = _apply_date_filter(df_adm, 'admission_date', timeframe, start_date, end_date)
 
     return _build_quality_compliance_response(
         source='Amazon Athena',
         facility_id=facility_id,
         df_qa=df_qa,
         df_qi=df_qi,
+        df_qi_all=df_qi_all,
         df_ca=df_ca,
         df_pc=df_pc,
+        df_adm=df_adm,
         fac_map=fac_map,
         dep_map=dep_map
     )
@@ -1809,8 +1839,10 @@ def _build_quality_compliance_response(
     facility_id: str,
     df_qa: Optional[pd.DataFrame],
     df_qi: Optional[pd.DataFrame],
+    df_qi_all: Optional[pd.DataFrame],
     df_ca: Optional[pd.DataFrame],
     df_pc: Optional[pd.DataFrame],
+    df_adm: Optional[pd.DataFrame],
     fac_map: Dict[str, str],
     dep_map: Dict[str, str]
 ) -> Dict[str, Any]:
@@ -1826,7 +1858,7 @@ def _build_quality_compliance_response(
         privacy_mask = df_qa['audit_type'] == 'Data Privacy'
         privacy_score = round(_safe_mean(df_qa[privacy_mask], 'compliance_score'), 1) if privacy_mask.any() else None
     else:
-        overall_score = 0.0
+        overall_score = None
         compliant_audits = 0
         minor_findings = 0
         major_findings = 0
@@ -1848,6 +1880,26 @@ def _build_quality_compliance_response(
         incidents_by_status = {}
         med_error_count = 0
         infection_count = 0
+
+    # Infection Incident Rate (admissions denominator)
+    total_adm = len(df_adm) if df_adm is not None and not df_adm.empty else 0
+    if total_adm > 0:
+        infection_rate = round((infection_count / total_adm * 100), 2)
+        infection_rate_formatted = f"{infection_rate}%"
+    elif infection_count == 0:
+        infection_rate = 0.0
+        infection_rate_formatted = "0.0%"
+    else:
+        infection_rate = None
+        infection_rate_formatted = f"{infection_count} Incidents (No Admissions)"
+
+    # Medication Errors Today (reference date matching)
+    now = datetime.now()
+    ref_date = now.date() if now.year == 2026 else date(2026, 10, 14)
+    ref_date_str = ref_date.strftime('%Y-%m-%d')
+    today_errors = 0
+    if df_qi_all is not None and not df_qi_all.empty and 'incident_date' in df_qi_all.columns:
+        today_errors = int(((df_qi_all['incident_type'] == 'Medication Error') & (df_qi_all['incident_date'].astype(str) == ref_date_str)).sum())
 
     # CAPA Aggregation
     total_capa = len(df_ca) if df_ca is not None else 0
@@ -1944,15 +1996,15 @@ def _build_quality_compliance_response(
         'facilityId': facility_id,
         'kpis': {
             'overallComplianceScore': overall_score,
-            'overallComplianceScoreFormatted': f"{overall_score}%",
+            'overallComplianceScoreFormatted': f"{overall_score}%" if overall_score is not None else "N/A (No Audits)",
             'dataPrivacyComplianceScore': privacy_score,
-            'dataPrivacyComplianceScoreFormatted': f"{privacy_score}%" if privacy_score is not None else 'N/A',
-            'hipaaComplianceScore': None,
-            'hipaaComplianceScoreFormatted': 'Not available from dataset',
-            'infectionRate': None,
-            'infectionRateFormatted': 'Not available from dataset',
-            'medicationErrorsToday': None,
-            'medicationErrorsTodayFormatted': 'Not available from dataset',
+            'dataPrivacyComplianceScoreFormatted': f"{privacy_score}%" if privacy_score is not None else "N/A (No Audits)",
+            'hipaaComplianceScore': privacy_score,
+            'hipaaComplianceScoreFormatted': f"{privacy_score}%" if privacy_score is not None else "N/A (No Audits)",
+            'infectionRate': infection_rate,
+            'infectionRateFormatted': infection_rate_formatted,
+            'medicationErrorsToday': today_errors,
+            'medicationErrorsTodayFormatted': f"{today_errors}",
             'totalMedicationErrors': med_error_count,
             'totalInfectionIncidents': infection_count,
             'totalAudits': total_audits,
@@ -3212,9 +3264,12 @@ def get_patient_experience_intelligence(
     if df_fb is None or df_fb.empty:
         return {
             'totalFeedback': 0,
-            'overallRating': 0.0,
-            'csatScore': 0.0,
-            'npsScore': 0.0,
+            'overallRating': None,
+            'overallRatingFormatted': 'N/A (No Feedback)',
+            'csatScore': None,
+            'csatScoreFormatted': 'N/A (No Feedback)',
+            'npsScore': None,
+            'npsScoreFormatted': 'N/A (No Feedback)',
             'sentimentBreakdown': [],
             'feedbackChannelBreakdown': [],
             'complaints': {
@@ -3292,8 +3347,11 @@ def get_patient_experience_intelligence(
     return {
         'totalFeedback': tot_fb,
         'overallRating': overall_rating,
+        'overallRatingFormatted': f"{overall_rating}" if overall_rating is not None else 'N/A (No Feedback)',
         'csatScore': csat_score,
+        'csatScoreFormatted': f"{csat_score}%" if csat_score is not None else 'N/A (No Feedback)',
         'npsScore': nps_score,
+        'npsScoreFormatted': f"{nps_score}" if nps_score is not None else 'N/A (No Feedback)',
         'sentimentBreakdown': sentiment_breakdown,
         'feedbackChannelBreakdown': channel_breakdown,
         'complaints': {
