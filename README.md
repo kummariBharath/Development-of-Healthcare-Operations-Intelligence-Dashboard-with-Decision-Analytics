@@ -20,7 +20,7 @@
 [![AWS Glue](https://img.shields.io/badge/AWS%20Glue-Catalog%20(ap--south--2)-8C4FFF?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/glue/)
 [![Amazon Athena](https://img.shields.io/badge/Amazon%20Athena-Serverless%20SQL-FF9900?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/athena/)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon%20Bedrock-Nova%20Lite%20(us--east--1)-0052CC?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/bedrock/)
-[![Project Status](https://img.shields.io/badge/Status-Active%20Production-0ea5e9?style=for-the-badge)](https://development-of-healthcare-operation.vercel.app)
+[![Audit Status](https://img.shields.io/badge/Audit%20Remediation-Verified%20Pass%20(26%2F26%20Tests)-059669?style=for-the-badge)](#13-testing-validation--audit-remediation)
 [![License](https://img.shields.io/badge/License-Proprietary-lightgrey?style=for-the-badge)](#license)
 
 <br/>
@@ -37,37 +37,31 @@
 - [2. Operational Challenge vs. Platform Solution](#2-operational-challenge-vs-platform-solution)
 - [3. End-to-End System Architecture](#3-end-to-end-system-architecture)
 - [4. Vercel Deployment & Workload Identity Architecture](#4-vercel-deployment--workload-identity-architecture)
-- [5. Data Engineering & Query Execution Architecture](#5-data-engineering--query-execution-architecture)
-- [6. Resilient Analytics & Data Source Architecture](#6-resilient-analytics--data-source-architecture)
-- [7. Frontend → Backend → AWS Execution Flow](#7-frontend--backend--aws-execution-flow)
-- [8. AI Decision Intelligence: Provider-Independent Architecture (Google Gemini & Amazon Bedrock)](#8-ai-decision-intelligence-provider-independent-architecture-google-gemini--amazon-bedrock)
-- [9. Authentication & User Access Architecture](#9-authentication--user-access-architecture)
+- [5. AWS Cloud Data Pipeline & Multi-Region Storage](#5-aws-cloud-data-pipeline--multi-region-storage)
+- [6. Resilient Multi-Tier Analytics & Data Source Hierarchy](#6-resilient-multi-tier-analytics--data-source-hierarchy)
+- [7. Frontend → Backend → Cloud Execution Flow](#7-frontend--backend--cloud-execution-flow)
+- [8. AI Decision Intelligence: Provider-Independent Architecture](#8-ai-decision-intelligence-provider-independent-architecture)
+- [9. Authentication & User Access Architecture (Amazon Cognito PKCE)](#9-authentication--user-access-architecture-amazon-cognito-pkce)
 - [10. Security Perimeter & Credential Isolation](#10-security-perimeter--credential-isolation)
-- [11. Product Integrity & Execution Truthfulness (Phase 2A)](#11-product-integrity--execution-truthfulness-phase-2a)
-- [12. Data-Source UX, Loading & Error Handling Architecture (Phase 2B & 2C)](#12-data-source-ux-loading--error-handling-architecture-phase-2b--2c)
-- [13. Healthcare Data Model (41 Core Datasets)](#13-healthcare-data-model-41-core-datasets)
-- [14. Analytics & Metric Computation Layer](#14-analytics--metric-computation-layer)
-- [15. MedOps Command Suite (20 User-Facing Modules)](#15-medops-command-suite-20-user-facing-modules)
-- [16. Internal & Developer Diagnostics](#16-internal--developer-diagnostics)
-- [17. End-to-End Project Workflow](#17-end-to-end-project-workflow)
-- [18. Technology Stack](#18-technology-stack)
-- [19. Repository Structure](#19-repository-structure)
-- [20. Architectural Answers to Core System Questions](#20-architectural-answers-to-core-system-questions)
-- [21. Development Workflow & Engineering Standards](#21-development-workflow--engineering-standards)
-- [22. Engineering Team](#22-engineering-team)
-- [23. Data Privacy & Responsible Use](#23-data-privacy--responsible-use)
-- [24. Getting Started & Local Setup](#24-getting-started--local-setup)
-- [25. AWS Infrastructure & Cloud Configuration Guide](#25-aws-infrastructure--cloud-configuration-guide)
-- [26. Performance & Scalability Considerations](#26-performance--scalability-considerations)
-- [27. Product Roadmap & Milestone Tracking](#27-product-roadmap--milestone-tracking)
-- [28. Engineering Principles](#28-engineering-principles)
-- [29. Project Status, License & Acknowledgements](#29-project-status-license--acknowledgements)
+- [11. Healthcare Data Model (41 Relational Tables)](#11-healthcare-data-model-41-relational-tables)
+- [12. Analytics & Verified Metric Computation Layer](#12-analytics--verified-metric-computation-layer)
+- [13. Master Implemented Metrics Reference](#13-master-implemented-metrics-reference)
+- [14. Complete Dashboard Module Suite (21 Modules)](#14-complete-dashboard-module-suite-21-modules)
+- [15. Internal Developer Diagnostics (AWS Cloud Services Hub)](#15-internal-developer-diagnostics-aws-cloud-services-hub)
+- [16. REST API Specification (All 22 Endpoints)](#16-rest-api-specification-all-22-endpoints)
+- [17. Technology Stack](#17-technology-stack)
+- [18. Repository Structure](#18-repository-structure)
+- [19. Testing, Validation & Audit Remediation](#19-testing-validation--audit-remediation)
+- [20. Getting Started & Local Setup](#20-getting-started--local-setup)
+- [21. AWS Cloud Infrastructure Deployment Guide](#21-aws-cloud-infrastructure-deployment-guide)
+- [22. System Limitations & Future Engineering Roadmap](#22-system-limitations--future-engineering-roadmap)
+- [23. Engineering Principles & Project Truthfulness](#23-engineering-principles--project-truthfulness)
 
 ---
 
 ## 1. Executive Overview
 
-Modern healthcare delivery networks generate colossal volumes of operational and clinical data across emergency rooms, inpatient wards, surgical suites, pharmacy distribution points, revenue cycle billing platforms, and medical supply chains. However, hospital leadership routinely struggles with:
+Modern healthcare delivery networks generate colossal volumes of operational and clinical data across emergency departments, inpatient wards, surgical suites, pharmacy distribution points, revenue cycle billing platforms, and medical supply chains. However, hospital leadership routinely struggles with:
 
 * **Siloed Departmental Systems**: Clinical EHRs, Laboratory Information Management Systems (LIMS), ERPs, and billing platforms operate in isolation without centralized analytics.
 * **Delayed Retrospective Reporting**: Hospital administration relies heavily on delayed, manually compiled spreadsheets that hinder timely operational interventions.
@@ -86,11 +80,11 @@ To maintain strict engineering transparency, the table below establishes the exp
 | **AWS Cloud Workload Identity** | Zero static keys in cloud; **Vercel OIDC** token dynamically exchanged for temporary AWS credentials via **AWS STS** (`AssumeRoleWithWebIdentity`). | Cross-account IAM role assumption for external healthcare partners. |
 | **User Authentication** | **Amazon Cognito Managed Login** with OAuth 2.0 Authorization Code Grant and **PKCE**; session stored in browser `sessionStorage`. | Multi-tier granular RBAC backend route enforcement (currently groups mapped to user profile). |
 | **Primary Data Source** | **Amazon Athena** serverless SQL executing against **AWS Glue Data Catalog** (`medical_operations_db`) over **Amazon S3** data lake. | Snappy-compressed Apache Parquet automated conversion via AWS Glue ETL jobs. |
-| **Resilient Fallback** | Automated fallback hierarchy: In-memory cache (300s TTL) → Amazon Athena → S3 direct read → Local CSV fallback. | Distributed Redis caching layer across edge regions. |
-| **AI Decision Copilot** | **Amazon Bedrock** invoking `amazon.nova-lite-v1:0` in `us-east-1` with structured metric context and deterministic analytics fallback. | Fine-tuned clinical operational LLMs and multi-agent workflow coordinators. |
-| **User-Facing Modules** | **20 dedicated operational modules** in primary navigation across 5 functional operational groups. | External third-party marketplace modules and HL7/FHIR live connectors. |
+| **Resilient Fallback** | Automated 5-tier fallback hierarchy: In-memory cache (300s TTL) → Amazon Athena → S3 direct read → Local CSV fallback → Defensive empty states. | Distributed Redis caching layer across edge regions. |
+| **AI Decision Copilot** | **Provider-Independent AI Architecture**: Active Google Gemini (`gemini-3.5-flash`) adapter with Amazon Bedrock (`amazon.nova-lite-v1:0` in `us-east-1`) architecture. Strict zero-PHI prompt serialization and deterministic analytics fallback. | Fine-tuned clinical operational LLMs and multi-agent workflow coordinators. |
+| **User-Facing Modules** | **20 dedicated operational modules** in primary navigation across 5 functional operational groups + Enterprise Drilldown Matrix. | External third-party marketplace modules and bidirectional HL7/FHIR live connectors. |
 | **Developer Diagnostics** | Preserved internal `AWSCloudServicesHub.tsx` for direct Glue catalog schema inspection and interactive Athena SQL execution. | Embedded CloudWatch log streamer and Athena query cost optimizer console. |
-| **Operational Execution** | Truthful informational state: simulated mock triggers (surge alerts, fake claim submissions, auto-POs) removed/reframed in Phase 2A. | Production integrations with hospital ERP/HL7 systems for genuine outbound execution. |
+| **Technical Documentation** | Complete 40-page technical handbook and demo guide generated in `docs/MedOps_Internal_Demo_Technical_Guide.pdf`. | Automated interactive architecture wiki. |
 
 ---
 
@@ -101,11 +95,12 @@ To maintain strict engineering transparency, the table below establishes the exp
 | **Fragmented Departmental Data** | Centralized, schema-enforced AWS Data Lake housing 41 relational operational domains in Amazon S3 (`ap-south-1`). |
 | **Manual & Latent Reporting** | Automated serverless SQL queries executed via Amazon Athena delivering aggregated metrics on demand. |
 | **Executive Visibility Gaps** | Unified Executive Command Center aggregating hospital-wide throughput, census, and revenue across 5 facilities. |
-| **Unpredictable Bed Utilization** | Inpatient bed occupancy tracking, admissions-to-discharge monitoring, and average length of stay (ALOS) computation. |
+| **Unpredictable Bed Utilization** | Dynamic active admission date-interval overlap algorithm calculates real-time census against licensed bed capacity. |
 | **Workforce Scheduling Mismatches** | Doctor & Staff Intelligence correlating shift attendance, overtime hours, patient-to-staff ratios, and workload scores. |
-| **Claims Denials & Financial Leakage** | Revenue Cycle Analytics uncovering top denial reason codes, outstanding accounts receivable, and net billing collections. |
-| **Critical Stockouts & Supply Delays** | Pharmacy & Inventory Intelligence monitoring automated reorder thresholds, batch expirations, and vendor lead-times. |
-| **Reactive Patient Experience Oversight** | Multi-channel Patient Experience analytics tracking Net Promoter Scores (NPS), CSAT ratings, and feedback sentiment. |
+| **Claims Denials & Financial Leakage** | Revenue Cycle Analytics uncovering top denial reason codes (CO-16, CO-197), outstanding A/R, and clean claim rates. |
+| **Critical Stockouts & Supply Delays** | Pharmacy & Inventory Intelligence monitoring automated reorder thresholds, dynamic 90-day batch expirations, and stock value. |
+| **Quality & Privacy Auditing** | Quality & Compliance module tracking authentic Data Privacy audit scores, infection incident rates per admission, and medication errors. |
+| **Reactive Patient Experience Oversight** | Multi-channel Patient Experience analytics tracking Net Promoter Scores (NPS), CSAT ratings, and feedback sentiment with graceful missing-data handling. |
 
 ---
 
@@ -113,48 +108,13 @@ To maintain strict engineering transparency, the table below establishes the exp
 
 The MedOps Intelligence platform follows a decoupled, cloud-native architecture combining a Vercel-hosted presentation and API layer with an AWS serverless data lake, query execution engine, and generative AI copilot:
 
-### High-Level Conceptual Architecture
-
-```
-                    USER
-                      │
-                      ▼
-            React + TypeScript + Vite
-                MedOps Frontend
-                      │
-                      ▼
-                 apiService.ts
-                      │
-                 HTTPS / REST
-                      │
-                      ▼
-              FastAPI Backend
-                      │
-          ┌───────────┼─────────────┐
-          │           │             │
-          ▼           ▼             ▼
-       AWS STS    Analytics       Bedrock
-       via OIDC    Services          AI
-          │           │
-          │      ┌────┼─────┐
-          │      ▼    ▼     ▼
-          │   Athena Glue   S3
-          │      │     │     │
-          │      └─────┴─────┘
-          │
-          ▼
- Temporary AWS Credentials
-```
-
-### Complete Multi-Tier Mermaid Architecture
-
 ```mermaid
 flowchart TB
     subgraph LayerA["A. Presentation Layer (Vercel Frontend)"]
         User(("Hospital Leadership\n& Clinical Directors"))
         ReactApp["React 19 + TypeScript + Vite SPA\n(Tailwind CSS v4 + Recharts)"]
         CognitoAuth["Cognito Auth Context\n(PKCE + Session Storage)"]
-        ApiService["apiService.ts\n(Bearer Auth + API Client)"]
+        ApiService["apiService.ts\n(Bearer Auth + REST Client)"]
         User -->|"Browser HTTPS"| ReactApp
         ReactApp <--> CognitoAuth
         ReactApp --> ApiService
@@ -164,7 +124,7 @@ flowchart TB
         FastAPI["FastAPI Python REST Service\n(Entrypoint: app.main:app)"]
         MemCache["In-Memory Analytics Cache\n(TTL: 300s, Safe Numeric Cleaning)"]
         DashboardSvc["dashboard_service.py\n(Defensive Metric Aggregation Engine)"]
-        CopilotSvc["copilot_service.py\n(Metric Context Serialization)"]
+        CopilotSvc["copilot_service.py / ai_service.py\n(Zero-PHI Context Serialization)"]
         ApiService -->|"HTTPS REST /api/*"| FastAPI
         FastAPI <--> MemCache
         FastAPI --> DashboardSvc
@@ -181,23 +141,24 @@ flowchart TB
     end
 
     subgraph LayerD["D. AWS Cloud Storage Layer"]
-        S3Data["Amazon S3 Raw Data Lake\ns3://medical-operations-bharath-2026/\n(41 Operational Datasets)"]
+        S3Data["Amazon S3 Raw Data Lake\ns3://medical-operations-bharath-2026/raw/\n(41 Operational Datasets · 100k+ Records)"]
         S3Athena["Amazon S3 Query Results\ns3://medical-operations-athena-results-bharath-2026/"]
     end
 
     subgraph LayerE["E. Metadata & Catalog Layer"]
-        Glue["AWS Glue Data Catalog\nDatabase: medical_operations_db\n(41 Schema-Enforced Tables)"]
+        Glue["AWS Glue Data Catalog (ap-south-2)\nDatabase: medical_operations_db\n(41 Schema-Enforced Tables)"]
     end
 
     subgraph LayerF["F. Serverless SQL Analytics Layer"]
-        Athena["Amazon Athena\nWorkgroup: primary\n(Presto / Trino SQL Query Engine)"]
+        Athena["Amazon Athena (ap-south-2)\nWorkgroup: primary\n(Presto / Trino SQL Query Engine)"]
     end
 
     subgraph LayerG["G. AI & Decision Intelligence Layer"]
-        Bedrock["Amazon Bedrock\nModel: amazon.nova-lite-v1:0\nRegion: us-east-1"]
+        Bedrock["Amazon Bedrock (us-east-1)\nModel: amazon.nova-lite-v1:0"]
+        Gemini["Google Gemini API\nModel: gemini-3.5-flash (Cascade)"]
     end
 
-    %% Wiring Security & Storage
+    %% Security Authorizations
     TempCreds -.->|"Authorizes Boto3"| Athena
     TempCreds -.->|"Authorizes Boto3"| Glue
     TempCreds -.->|"Authorizes Boto3"| S3Data
@@ -212,19 +173,19 @@ flowchart TB
     %% Backend Execution
     DashboardSvc -->|"1. Live SQL Query"| Athena
     DashboardSvc -.->|"2. Direct S3 Fallback"| S3Data
-    CopilotSvc -->|"InvokeModel (Structured Prompt)"| Bedrock
+    CopilotSvc -->|"Inference Request"| Gemini
+    CopilotSvc -.->|"Native AWS Target"| Bedrock
 
-    %% Layer H: Response Path
+    %% Response Path
     Athena -->|"Result Rows"| DashboardSvc
-    Bedrock -->|"Executive Narrative"| CopilotSvc
     DashboardSvc -->|"Aggregated JSON"| FastAPI
-    CopilotSvc -->|"Decision Payload"| FastAPI
+    CopilotSvc -->|"Executive Synthesis"| FastAPI
     FastAPI -->|"JSON REST Response"| ApiService
     ApiService -->|"React State Updates"| ReactApp
 ```
 
 > [!IMPORTANT]
-> **Production Boundary**: The architecture enforces complete client isolation. The browser-based React client never receives AWS access keys, secret keys, or IAM session tokens. All Athena queries and Bedrock invocations are mediated through authenticated FastAPI endpoints and validated against least-privilege IAM policies.
+> **Zero Client-Side Credential Exposure**: The browser-based React client never receives AWS access keys, secret keys, or IAM session tokens. All Athena queries, Glue metadata inspections, and AI model invocations are mediated strictly through authenticated FastAPI backend endpoints.
 
 ---
 
@@ -251,207 +212,146 @@ Vercel Edge Network
 ### Key Deployment Characteristics
 
 * **Unified Vercel Hosting**: Vercel hosts both the static React frontend and the Python FastAPI backend service configured via `vercel.json` rewrites (`/api/*` routes to the backend service).
-* **AWS as Cloud Data Platform**: AWS is **not** the application hosting platform. AWS provides the data storage, catalog, serverless SQL query engine, and generative AI infrastructure.
-* **No ECS/Fargate/ALB in Production**: Old containerized ECS, ECR, and Application Load Balancer experiments have been deprecated in favor of serverless Vercel hosting.
-* **Vercel OIDC Workload Identity**: In production on Vercel, the backend automatically acquires a short-lived OIDC JWT from the Vercel execution environment. It presents this token to AWS STS via `assume_role_with_web_identity` to obtain scoped, temporary AWS credentials.
-* **Zero Static AWS Credentials in the Browser**: The client browser never receives, stores, or handles AWS access keys. All cloud interactions occur server-side inside FastAPI.
+* **AWS as Cloud Data Platform**: AWS provides data lake storage (S3), schema cataloging (Glue), serverless SQL query execution (Athena), and AI models (Bedrock).
+* **Vercel OIDC Workload Identity**: In cloud production on Vercel, the backend automatically acquires a short-lived OIDC JWT from the Vercel execution environment. It presents this token to AWS STS via `assume_role_with_web_identity` to obtain scoped, temporary AWS credentials. Zero static AWS keys are stored in the cloud.
+* **Local Development Fallback**: When running locally without active AWS credentials, the backend cleanly resolves local CSV datasets from `dataset/medical_operations_core_v9_100k/` without throwing 500 errors.
 
 ---
 
-## 5. Data Engineering & Query Execution Architecture
+## 5. AWS Cloud Data Pipeline & Multi-Region Storage
 
-The core data engineering pipeline transforms 41 raw operational healthcare datasets into validated clinical and managerial KPIs:
+MedOps implements an intentional multi-region cloud data architecture:
 
-```
-Healthcare Operational Datasets (CSV)
-        ↓
-Amazon S3 Data Lake (s3://medical-operations-bharath-2026/)
-        ↓
-AWS Glue Data Catalog (Database: medical_operations_db)
-        ↓
-Amazon Athena (Serverless SQL Query Engine)
-        ↓
-FastAPI Analytics Services (dashboard_service.py)
-        ↓
-JSON REST API Response (/api/dashboard/*)
-        ↓
-React Dashboard Components (ExecutiveCommandCenter, etc.)
-        ↓
-KPI Cards · Dynamic Recharts · Drilldown Tables · Decision Intelligence
-```
+| Component | AWS Service | Configured Region | Configuration Variable |
+| :--- | :--- | :--- | :--- |
+| **Data Lake Storage** | Amazon S3 | **`ap-south-1`** (Mumbai) | `AWS_S3_REGION` (default: `ap-south-1`), `AWS_S3_BUCKET` (`medical-operations-bharath-2026`) |
+| **Data Catalog** | AWS Glue | **`ap-south-2`** (Hyderabad) | `AWS_DATA_REGION` (default: `ap-south-2`), `AWS_GLUE_DATABASE` (`medical_operations_db`) |
+| **Serverless SQL** | Amazon Athena | **`ap-south-2`** (Hyderabad) | `AWS_DATA_REGION` (default: `ap-south-2`), `AWS_ATHENA_WORKGROUP` (`primary`) |
+| **AI Inference** | Amazon Bedrock | **`us-east-1`** (N. Virginia) | `AWS_BEDROCK_REGION` (`us-east-1`), `AWS_BEDROCK_MODEL` (`amazon.nova-lite-v1:0`) |
+| **User Identity** | Amazon Cognito | **`us-east-1`** (N. Virginia) | `us-east-1_fs4PnK0gh` (User Pool ID), `241i1ehcindfsu1d77953or31u` (Client ID) |
 
-### Architectural Roles by Component
-
-* **Amazon S3 (`ap-south-1`)**: The primary storage layer. Holds all 41 operational datasets partitioned logically by table name under immutable storage. Also maintains Athena query output manifests in a dedicated results bucket.
-* **AWS Glue Data Catalog (`ap-south-2`)**: The metadata and schema repository. Enforces column definitions, standardizes data types, and registers table locations for `medical_operations_db`.
-* **Amazon Athena (`ap-south-2` / Primary Workgroup)**: The serverless query engine. Executes ANSI SQL queries directly against S3 data using Presto/Trino distributed compute, incurring zero idle-server costs.
-* **FastAPI Backend (`app/services/dashboard_service.py`)**: The analytical and transformation layer. Dispatches SQL queries, cleans data types defensively, performs clinical aggregations, and computes complex ratios.
-* **React Frontend (`src/components/modules/`)**: The presentation and decision-support layer. Renders responsive scorecards, department comparative charts, and actionable operational insights.
-
----
-
-## 6. Resilient Analytics & Data Source Architecture
-
-To guarantee maximum system availability across varied network and deployment environments, MedOps Intelligence implements a multi-tier fallback architecture:
-
-```
-[ In-Memory Cache (TTL: 300s) ]
-        │ (Miss / Expired)
-        ▼
-[ Amazon Athena (Primary Live Analytical Source) ]
-        │ (Query Error / Athena Offline)
-        ▼
-[ S3 Direct Fallback (Where Implemented) ]
-        │ (Bucket Inaccessible / Local Dev)
-        ▼
-[ Local Dataset Fallback (Where Implemented) ]
-```
-
-### Fallback Implementation Rules
-
-1. **In-Memory Cache (First Priority)**: Repeated queries within a 300-second window are served instantly from thread-safe in-memory DataFrames, reducing Athena scan overhead and query latency.
-2. **Amazon Athena (Primary Live Source)**: The production system dispatches distributed SQL queries against the AWS Glue Catalog. Successful responses set the verified data source to `Amazon Athena`.
-3. **Direct S3 Read Fallback**: If Athena query execution encounters a throttling or connectivity barrier, analytical services fall back to reading the raw CSV directly from `s3://medical-operations-bharath-2026/raw/{table}/{table}.csv`.
-4. **Local Development Fallback**: When running locally without active AWS credentials, the backend resolves the dataset from `dataset/medical_operations_core_v9_100k/` for offline developer productivity.
-
-> [!NOTE]
-> **Defensive Scope**: Not every operational module requires all four fallback tiers. Amazon Athena is the primary live analytical source for production workflows. If live data cannot be retrieved and fallbacks are exhausted, the platform surfaces an explicit error state rather than presenting unverified numbers.
-
----
-
-## 7. Frontend → Backend → AWS Execution Flow
-
-The sequence below illustrates the exact path data traverses from the user's browser down to AWS storage and back:
+### 8-Stage Data Lifecycle Flow
 
 ```mermaid
 sequenceDiagram
     autonumber
+    actor Dev as Developer / Pipeline
+    participant S3 as Amazon S3 (ap-south-1)
+    participant Glue as AWS Glue (ap-south-2)
+    participant Athena as Amazon Athena (ap-south-2)
+    participant Fast as FastAPI Backend
     actor User as Hospital Executive
-    participant UI as React Component (e.g., ExecutiveCommandCenter)
-    participant Api as apiService.ts
-    participant Fast as FastAPI REST Router (/api/dashboard/summary)
-    participant Auth as AWS STS / Session Manager
-    participant Athena as Amazon Athena (Presto SQL)
-    participant Glue as AWS Glue Data Catalog
-    participant S3 as Amazon S3 (Data Lake)
+    participant UI as React Dashboard
 
-    User->>UI: Selects Facility ("FAC001") & Timeframe ("Current Operations")
-    UI->>UI: Renders "Data Source: Connecting to Amazon Athena..."
-    UI->>Api: fetchExecutiveSummary("FAC001", "realtime")
-    Api->>Fast: GET /api/dashboard/summary?facility_id=FAC001
-    
-    alt In-Memory Cache Hit (< 300s)
-        Fast-->>Api: Cached Cleaned Aggregations JSON
+    Dev->>S3: 1. Upload validated CSVs (s3://medical-operations-bharath-2026/raw/{table}/)
+    Dev->>Glue: 2. Register / verify schemas in medical_operations_db
+    User->>UI: 3. Select Facility ('FAC001') & Timeframe ('monthly')
+    UI->>Fast: 4. GET /api/dashboard/financial-intelligence?facility_id=FAC001&timeframe=monthly
+    alt In-Memory Cache Hit (< 300s TTL)
+        Fast-->>UI: 5a. Return sanitized cached metrics JSON
     else Cache Miss -> Query Athena
-        Fast->>Auth: get_athena_client() via Vercel OIDC / STS Credentials
-        Auth-->>Fast: Active Boto3 Client Session
-        Fast->>Athena: execute_athena_query(SELECT ... FROM admissions WHERE facility_id='FAC001')
-        Athena->>Glue: Fetch Table Schema & S3 Location Metadata
-        Glue-->>Athena: Column Types & S3 Descriptors
-        Athena->>S3: Distributed Scan over s3://medical-operations-bharath-2026/
-        S3-->>Athena: Raw Record Chunks
-        Athena-->>Fast: Query Status: SUCCEEDED (Execution ID + Row Data)
-        Fast->>Fast: _clean_df_types() & Compute Formulations (Occupancy, Denial Rate, Net Revenue)
-        Fast-->>Api: HTTP 200 OK { source: "Amazon Athena", kpis: [...], rawMetrics: {...} }
+        Fast->>Athena: 5b. SELECT * FROM financial_monthly WHERE facility_id='FAC001'
+        Athena->>Glue: 6. Resolve table schema & S3 location descriptors
+        Athena->>S3: 7. Distributed scan across S3 CSV data chunks
+        Athena-->>Fast: 8. Query execution SUCCEEDED (Rows + Execution ID)
+        Fast->>Fast: 9. _clean_df_types() & calculate Operating Profit, Variances, Margins
+        Fast-->>UI: 10. HTTP 200 OK (Cleaned JSON Payload)
     end
-
-    Api-->>UI: Updates React Component State
-    UI->>UI: Updates Badge: "Data Source: Amazon Athena"
-    UI-->>User: Displays Verified KPI Cards, Department Charts, and Comparison Matrix
+    UI-->>User: 11. Render verified P&L table, Recharts area charts & KPI cards
 ```
 
 ---
 
-## 8. AI Decision Intelligence: Provider-Independent Architecture (Google Gemini & Amazon Bedrock)
+## 6. Resilient Multi-Tier Analytics & Data Source Hierarchy
 
-MedOps Intelligence features a **Provider-Independent AI Architecture** designed to seamlessly bridge cloud AI inference with enterprise healthcare data telemetry.
+To guarantee maximum system availability across varied network, cloud, and local environments, MedOps Intelligence implements an automated **five-tier fallback hierarchy** inside `_load_table()`:
+
+```
+[ Tier 1: In-Memory Cache (TTL: 300s) ]
+         │ (Miss / Expired)
+         ▼
+[ Tier 2: Amazon Athena Serverless SQL (Primary Live Analytical Source) ]
+         │ (Query Timeout / Throttled / Cloud Offline)
+         ▼
+[ Tier 3: Direct Amazon S3 Bucket Read (raw/{table}/{table}.csv via Boto3) ]
+         │ (Bucket Inaccessible / Local Offline Dev)
+         ▼
+[ Tier 4: Local CSV Dataset Fallback (dataset/medical_operations_core_v9_100k/) ]
+         │ (Missing Disk File)
+         ▼
+[ Tier 5: Defensive Empty DataFrame (_safe_sum, _safe_mean -> 'N/A' states) ]
+```
+
+1. **In-Memory Cache (First Priority)**: Repeated queries within a 300-second window are served instantly from thread-safe in-memory DataFrames, reducing Athena scan overhead and query latency to sub-10ms.
+2. **Amazon Athena (Primary Live Source)**: Dispatches distributed Presto/Trino SQL queries against the AWS Glue Catalog. Auto-detects and repairs generic `col0..colN` headers when crawlers do not promote header rows.
+3. **Direct S3 Read Fallback**: If Athena query execution encounters a throttling or connectivity barrier, analytical services fall back to reading the raw CSV directly from `s3://medical-operations-bharath-2026/raw/{table}/{table}.csv`.
+4. **Local Development Fallback**: When running locally without active AWS credentials, the backend resolves the dataset from `dataset/medical_operations_core_v9_100k/` for offline developer productivity.
+5. **Defensive Empty State**: If all data sources fail, returns an empty DataFrame. Mathematical aggregations use `_safe_sum()` and `_safe_mean()`, surfacing explicit "N/A" states rather than 500 crashes.
+
+---
+
+## 7. Frontend → Backend → Cloud Execution Flow
+
+Every user action follows a strictly validated, decoupled execution pipeline:
+
+1. **User Interaction**: The user selects a facility (e.g., `FAC001`) and timeframe (e.g., `Monthly`) in the `Header.tsx` controls.
+2. **React State Update**: Active module component sets loading state and renders animated skeleton placeholders.
+3. **API Client Request**: `src/services/apiService.ts` dispatches a `fetch()` request, automatically attaching the Cognito `Authorization: Bearer <id_token>` header.
+4. **FastAPI Routing**: The corresponding router in `backend/app/routes/dashboard.py` validates parameters and delegates to `backend/app/services/dashboard_service.py`.
+5. **Data Retrieval**: `_load_table()` evaluates cache, Athena, S3, or local CSV fallbacks.
+6. **Defensive Transformation**: `_clean_df_types()` shields protected IDs, strips currency formatting, and casts metrics to native 64-bit numerics.
+7. **Business Logic Computation**: Mathematical formulations (active bed occupancy, clean claim rates, EBITDA proxy, budget variances) are computed.
+8. **JSON Serialization**: FastAPI serializes a validated dictionary into HTTP 200 JSON, replacing NaNs with `null` or formatted strings.
+9. **UI Re-rendering**: React receives the payload; Recharts plots responsive SVG charts; metric cards display verified numbers and data source provenance badges.
+
+---
+
+## 8. AI Decision Intelligence: Provider-Independent Architecture
+
+MedOps features a **Provider-Independent AI Architecture** designed to seamlessly bridge cloud AI inference with enterprise healthcare data telemetry:
 
 ```
 React Frontend (Executive Command Center / AI Copilot Drawer / AI Agent Tab)
-                             |
-                             v
+                             │
+                             ▼
                  FastAPI Backend Service Layer
-                             |
-              +--------------+--------------+
-              |                             |
-              v                             v
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+              ▼                             ▼
     AWS Analytics Pipeline        Provider-Independent AI Service
     (S3 / Glue / Athena)          (app/services/ai_service.py)
-              |                             |
-              v                     +-------+-------+
-    Verified Aggregate Metrics     |               |
-              |                     v               v
-              +--------------> [Google Gemini] [Amazon Bedrock]
-                               (Temporary)     (AWS Native)
-                                    |               |
-                                    +-------+-------+
-                                            |
-                                            v
+              │                             │
+              ▼                     ┌───────┴───────┐
+    Verified Aggregate Metrics     │               │
+              │                     ▼               ▼
+              └──────────────> [Google Gemini] [Amazon Bedrock]
+                               (Active Adapter) (Native Target)
+                                    │               │
+                                    └───────┬───────┘
+                                            │
+                                            ▼
                               AI Executive Summary & Copilot
 ```
 
-### 1. Purpose of the Google Gemini Integration
-Amazon Bedrock model access enablement is currently pending cloud-side activation. To provide immediate, production-grade operational intelligence, **Google Gemini API** is integrated as the temporary primary AI provider using Google's official Python SDK (`google-genai`).
+### 1. Active Adapter: Google Gemini with Bedrock Native Target
+Amazon Bedrock model access enablement is currently pending cloud-side AWS account review. To deliver immediate, production-grade operational intelligence, the **Google Gemini API** (`gemini-3.5-flash`) is integrated as the active operational provider via Google's official Python SDK (`google-genai`).
+* **Zero AWS Regression**: S3 data storage, AWS Glue Data Catalog, Amazon Athena serverless queries, and Cognito authentication remain 100% active and untouched.
+* **Provider-Independent Adapter**: An abstraction layer (`BaseAIProvider`, `GeminiProvider`, `BedrockProvider`) isolates provider specifics from healthcare business logic. Switching providers requires changing only `AI_PROVIDER=bedrock` in `backend/.env`.
 
-This integration strictly adheres to the following principles:
-- **Zero AWS Regression**: S3 data storage, AWS Glue Data Catalog, Amazon Athena serverless queries, and IAM roles remain 100% active and untouched.
-- **Provider-Independent Adapter**: An abstraction layer (`BaseAIProvider`, `GeminiProvider`, `BedrockProvider`) isolates provider specifics from healthcare business logic.
-- **Strict Data Grounding**: Prompts contain **only aggregate verified numerical metrics** (admissions, ALOS, collections, denial rates, ED wait times, occupancy). Zero identifiable patient information (PHI) is ever transmitted.
-- **Resilient Fallback**: If external LLM APIs experience rate limits, model retirement, or network timeouts, the system automatically falls back to **Deterministic Analytics Mode**, ensuring the executive dashboard never crashes.
+### 2. Strict Zero-PHI Data Grounding Policy
+Under no circumstances does MedOps transmit Protected Health Information (PHI) to external LLM APIs.
+* **Aggregate Only**: Prompts receive **strictly high-level aggregate metrics** (total admissions, ALOS, collections, denial rates, ED wait times, occupancy %).
+* **Zero Identifiers**: Zero patient names, medical record numbers (MRNs), dates of birth, social security numbers, or clinical chart notes are ever included in prompt payloads.
 
-### 2. Required Environment Variables
-
-Configure these variables in your backend environment file (`backend/.env`):
-
-| Variable | Description | Default / Example | Security Requirement |
-| :--- | :--- | :--- | :--- |
-| `AI_PROVIDER` | Active AI provider (`gemini` or `bedrock`) | `gemini` | Non-secret |
-| `GEMINI_API_KEY` | Google Gemini API Key | `your_gemini_api_key_here` | **Strict Secret**: Backend-only, never committed to Git, never exposed to frontend |
-| `GEMINI_MODEL` | Gemini Model Identifier | `gemini-3.5-flash` | Non-secret |
-| `AWS_BEDROCK_MODEL` | Amazon Bedrock Model Identifier | `amazon.nova-lite-v1:0` | Non-secret |
-| `AWS_BEDROCK_REGION` | AWS Bedrock Service Region | `us-east-1` | Non-secret |
-
-### 3. Secure API Key Configuration
-- **Backend Isolation**: `GEMINI_API_KEY` is loaded exclusively inside the FastAPI backend runtime (`backend/app/config.py`).
-- **Zero Browser Exposure**: The key is never referenced, packaged, or transmitted to Vite or the React client.
-- **Git Protection**: `.env` and `backend/.env` are strictly excluded in `.gitignore` (`.env*`). A placeholder template is maintained in `.env.example`.
-- **Log Sanitization**: Full prompts, raw tokens, and API credentials are never written to server logs or client error responses.
-
-### 4. AI-Powered Executive Operational Summary
-The primary AI capability is the **AI Operational Executive Briefing** integrated directly into the `ExecutiveCommandCenter`:
-- **Real-Time Synthesis**: Dynamically queries Athena/S3 for active admissions, bed occupancy, collections, emergency wait times, and claims denial rates.
-- **Structured Output**: Separates:
-  1. *Executive Synthesis Brief*: High-level operations narrative.
-  2. *Key Operational Trends*: Factual trends grounded in telemetry numbers.
-  3. *Operational Concerns*: Early warning capacity thresholds and financial risks.
-  4. *Management Recommendations*: Actionable administrative interventions.
-  5. *Verified Observations*: Clear boundary separating empirical data from advisory recommendations.
-- **Freshness & Provenance**: Displays reporting timeframe, data source provenance, and exact generation timestamps.
-- **Interactive UI**: Includes loading skeletons, error states, and on-demand refresh triggers.
-
-### 5. Known Limitations & API Quota Considerations
-- **Demand Spikes (503 Unavailable)**: Public AI APIs may experience transient capacity spikes. The MedOps Gemini adapter implements automatic candidate model cascading (`gemini-3.5-flash` → `gemini-3.8-flash` → `gemini-flash-latest`) before initiating deterministic fallback.
-- **Rate Limits (429 Quota Limits)**: If quota exhaustion occurs, the adapter catches the exception gracefully and serves a deterministic executive brief with an informational status banner.
-- **Clinical Boundary**: Summaries are strictly operational and administrative; they do not diagnose patients or make clinical treatment decisions.
-
-### 6. Future Migration Path to Amazon Bedrock
-When AWS Bedrock access is enabled:
-1. Update `backend/.env`:
-   ```bash
-   AI_PROVIDER=bedrock
-   AWS_BEDROCK_MODEL=amazon.nova-lite-v1:0
-   ```
-2. Restart the FastAPI backend server.
-3. The backend immediately routes inference through `BedrockProvider` using `boto3` and AWS credentials.
-4. **Zero Frontend Changes Required**: The React dashboard, API client, and component interfaces remain completely unchanged.
+### 3. Resilient Deterministic Analytics Fallback
+If public AI APIs experience rate limits (429), model retirement, or network timeouts (503), the system cascades across three candidate models (`gemini-3.5-flash` → `gemini-3.8-flash` → `gemini-flash-latest`) and automatically activates **Deterministic Analytics Mode**. The backend synthesizes structured operational insights directly from verified telemetry without crashing the dashboard.
 
 ---
 
-## 9. Authentication & User Access Architecture
+## 9. Authentication & User Access Architecture (Amazon Cognito PKCE)
 
 The platform cleanly separates **User Identity** from **AWS Workload Identity**:
-
-### 1. User Authentication (Amazon Cognito)
 
 ```
 User
@@ -472,194 +372,137 @@ Authenticated MedOps Application Shell
 * **Region**: `us-east-1`.
 * **User Pool ID**: `us-east-1_fs4PnK0gh`.
 * **Client ID**: `241i1ehcindfsu1d77953or31u` (Public Client, Secret-Free).
-* **Supported Cognito User Groups**:
-  * `ADMIN`: System Administrators and Cloud Operations Leads.
-  * `VIEWER`: Read-only clinical and administrative observers.
-  * `HOSPITAL_ADMIN`: Multi-facility operations executives (COO, CMO).
-  * `ANALYST`: Healthcare data and financial analysts.
-  * `DOCTOR`: Clinical department heads and attending physicians.
-* **Storage Isolation**: Tokens are stored strictly in browser `sessionStorage`, isolating sessions per tab and avoiding persistent `localStorage` vulnerabilities.
-* *Note on RBAC*: Current group claims are extracted into the user profile (`primaryRole`); extensive feature-level RBAC route gates remain scheduled on the roadmap.
-
-### 2. Workload Identity (Vercel OIDC → AWS STS)
-
-```
-Vercel Backend Service
-        ↓
-OIDC Identity Token (VERCEL_OIDC_TOKEN)
-        ↓
-AWS STS AssumeRoleWithWebIdentity
-        ↓
-Temporary IAM Session Credentials (1 Hour)
-        ↓
-S3 · Glue · Athena · Bedrock
-```
-
-User authentication (Cognito) and backend workload identity (Vercel OIDC) are decoupled architectural mechanisms.
+* **Supported Cognito User Groups**: `ADMIN`, `HOSPITAL_ADMIN`, `DOCTOR`, `ANALYST`, and `VIEWER`.
+* **Session Storage Isolation**: Tokens are stored strictly in browser `sessionStorage`, isolating sessions per tab and avoiding persistent `localStorage` vulnerabilities.
 
 ---
 
 ## 10. Security Perimeter & Credential Isolation
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              SECURITY PERIMETER & ISOLATION                            │
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│  [ CLIENT / BROWSER ]                                                                  │
-│       • Authenticates via Amazon Cognito Managed Login (Authorization Code + PKCE)     │
-│       • Stores ID & Access Tokens in tab-scoped sessionStorage                         │
-│       • ZERO static AWS Access Keys, Secret Keys, or Session Tokens                     │
-│       ▼                                                                                │
-│  [ FASTAPI BACKEND (VERCEL SERVERLESS) ]                                               │
-│       • Receives browser requests with Bearer JWT                                      │
-│       • Exchanges short-lived Vercel OIDC Token via AWS STS AssumeRoleWithWebIdentity  │
-│       • Holds scoped 1-hour temporary credentials                                      │
-│       ▼                                                                                │
-│  [ AWS CLOUD SERVICES (LEAST-PRIVILEGE IAM ROLES) ]                                    │
-│       • Amazon S3: Read-only access to raw datasets; Write access to Athena results   │
-│       • AWS Glue: Read-only access to database schema metadata                         │
-│       • Amazon Athena: Query execution scoped to 'primary' workgroup                   │
-│       • Amazon Bedrock: Model invocation scoped to 'amazon.nova-lite-v1:0'             │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
+* **Zero Static AWS Keys in Cloud**: In production on Vercel, the backend uses Vercel OIDC tokens exchanged via AWS STS (`AssumeRoleWithWebIdentity`) for 1-hour temporary credentials.
+* **Browser Isolation**: The React client never receives AWS credentials or database connection strings. All cloud queries are brokered through FastAPI.
+* **Secrets Management**: Backend environment variables are managed via `backend/.env`, strictly excluded from version control in `.gitignore`.
+* **Safe Numeric Cleaning**: All conversions use `_to_num()`, `_safe_sum()`, and `_safe_mean()`, stripping currency symbols and replacing NaNs with safe defaults to prevent server crashes.
+* **Regulatory Truthfulness**: The platform provides a Quality & Compliance module auditing data privacy practices. However, MedOps makes zero unsubstantiated claims of formal HIPAA or SOC2 regulatory certification.
 
 ---
 
-## 11. Product Integrity & Execution Truthfulness (Phase 2A)
+## 11. Healthcare Data Model (41 Relational Tables)
 
-During the **Phase 2A Product Integrity Audit**, all simulated or misleading action controls were systematically removed, disabled, or converted into truthful informational displays to guarantee full transparency:
+MedOps centralizes 41 relational healthcare tables registered in AWS Glue Data Catalog (`medical_operations_db`):
 
-| Previous Misleading UI Action | Truthful Current Implementation | Architectural Rationale |
-| :--- | :--- | :--- |
-| **"Trigger Surge Protocol"** | Informational alert card with operational staffing guidance. | Platform does not dispatch hospital-wide automated paging. |
-| **"Revenue Leakage Scan"** | Real-time Athena financial variance aggregation table. | Analytics are continuously computed rather than triggered as mock scans. |
-| **"Submit Clean Claims Batch"** | Truthful claims review scorecard with denial risk indicators. | Platform does not interface with live EDI 837 clearinghouses. |
-| **"Dispatch STAT Result Alerts"** | Visual turnaround time (TAT) monitoring and abnormal gauges. | Outbound clinical SMS/pager dispatch is not connected to production EHRs. |
-| **"Trigger AI Auto-Reorder POs"** | Inventory reorder warning lists with deficit calculations. | Automatic purchase order creation in ERPs requires human approval. |
-| **"Simulated Extract & Match"** | Documented ICD-10 / CPT code reference table. | NLP extraction pipeline is documented in architecture, not mocked in UI. |
-| **"Attach to Claim" / "Audit Claim"** | Static compliance checklists and status tags. | Claim editing is restricted to primary hospital billing systems. |
-| **"Quality Inspect / Flow Logistics"** | Descriptive incident summaries and inspection checklists. | Mock button clicks converted to static operational audit records. |
-| **Fake AlertsModal Operational Triggers** | Informational alert history browser. | Removed fake action buttons that produced simulated success toasts. |
-| **Fake Custom KPI Builder Persistence**| Read-only metric catalog view. | Eliminated simulated KPI creator that lacked persistent database storage. |
-
----
-
-## 12. Data-Source UX, Loading & Error Handling Architecture (Phase 2B & 2C)
-
-The Phase 2B and Phase 2C initiatives overhauled data states, navigation, and error resiliency across the entire user interface:
-
-### 1. Navigation Refinement (Phase 2B)
-* The primary navigation was refined to **20 dedicated user-facing operational modules**.
-* Misleading terminology such as **"Real-Time Live Stream"** was replaced across headers, filters, and cards with **"Current Operations"**, truthfully reflecting near-real-time batch queries.
-
-### 2. Truthful Loading & Data-Source Indicators (Phase 2C)
-* **Initial Loading State**: Replaced misleading initial `Data Source: Local Dataset` badges with an explicit state:
-  $$\text{Data Source: Connecting to Amazon Athena...}$$
-* **Standardized Athena Loading Messages**: Every operational module displays a descriptive loading notice:
-  * *Loading patient operations analytics from Amazon Athena...*
-  * *Loading physician & staffing analytics from Amazon Athena...*
-  * *Loading emergency & critical care analytics from Amazon Athena...*
-  * *Loading billing & revenue analytics from Amazon Athena...*
-  * *Loading claims & denial intelligence from Amazon Athena...*
-  * *Loading medical coding analytics from Amazon Athena...*
-  * *Loading diagnostic laboratory analytics from Amazon Athena...*
-  * *Loading pharmacy & inventory analytics from Amazon Athena...*
-  * *Loading patient experience analytics from Amazon Athena...*
-* **Verified Data-Source Badges**:
-  * On Athena query success: `Data Source: Amazon Athena`
-  * When S3 fallback engages: `Data Source: S3 Fallback`
-  * In offline local development: `Data Source: Local Fallback`
-
-### 3. Explicit Error Handling & Retry States
-* **Executive Command Center**: If backend or Athena queries fail, the view renders an explicit error container displaying the error reason and a **Retry Request** button rather than silently presenting stale data.
-* **Executive Analytics Hub**: If cross-domain tiles fail to load, an explicit alert container (*"Cross-Domain Analytics Unavailable"*) appears with a retry action, avoiding hardcoded fallback placeholders.
-* **Static Reference Baseline**: The monthly departmental revenue trend chart in the Executive Command Center is explicitly labeled **"Static Reference Baseline"**, documenting it as a multi-specialty reference benchmark rather than dynamic Athena telemetry.
-
----
-
-## 13. Healthcare Data Model (41 Core Datasets)
-
-> [!IMPORTANT]
-> **Architectural Distinction**: Do not confuse the **41 healthcare data tables** with the **20 user-facing modules**. The 41 tables represent the underlying relational data model cataloged in AWS Glue; the 20 modules represent the React presentation and command suite.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                           HEALTHCARE DATA MODEL - 41 CORE DATASETS                              │
-├───────────────────────────────────┬─────────────────────────────────────────────────────────────┤
-│ 1. Patient & Inpatient Flow (9)   │ patients · admissions · appointments · beds                 │
-│                                   │ bed_movements · discharge_records · emergency_visits        │
-│                                   │ icu_stays · patient_flow_events                             │
-├───────────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 2. Clinical & Workforce (9)       │ doctors · doctor_workload · staff · staff_workload          │
-│                                   │ staff_attendance · nurse_shifts · surgeries                 │
-│                                   │ departments · facilities                                    │
-├───────────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 3. Diagnostics & Pharmacy (8)     │ lab_orders_results · lab_samples · lab_tests                │
-│                                   │ lab_equipment · medicines · medicine_batches                │
-│                                   │ prescriptions · pharmacy_dispensing                         │
-├───────────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 4. Revenue Cycle & Finance (4)    │ billing · claims · financial_expenses · financial_monthly   │
-├───────────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 5. Supply Chain & Vendors (6)     │ inventory · inventory_transactions · purchase_orders         │
-│                                   │ supply_chain_purchase_orders · vendors · vendor_performance │
-├───────────────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 6. Quality, Experience & Safety(5)│ quality_audits · quality_incidents · corrective_actions     │
-│                                   │ patient_feedback · patient_complaints                       │
-└───────────────────────────────────┴─────────────────────────────────────────────────────────────┘
+```mermaid
+erDiagram
+    facilities ||--o{ departments : contains
+    departments ||--o{ beds : allocates
+    facilities ||--o{ admissions : admits
+    patients ||--o{ admissions : undergoes
+    admissions ||--o{ billing : generates
+    billing ||--o{ claims : submits
+    facilities ||--o{ emergency_visits : receives
+    facilities ||--o{ staff : employs
+    doctors ||--o{ doctor_workload : logs
+    facilities ||--o{ inventory : stocks
+    medicines ||--o{ medicine_batches : batches
+    facilities ||--o{ purchase_orders : issues
+    vendors ||--o{ purchase_orders : fulfills
 ```
 
-### Facilities Represented in Dataset
-1. `FAC001` — **Hyderabad Central Hospital** (Hyderabad, Telangana)
-2. `FAC002` — **Hyderabad West Clinic** (Hyderabad, Telangana)
-3. `FAC003` — **Secunderabad Medical Center** (Secunderabad, Telangana)
-4. `FAC004` — **Bengaluru Care Hospital** (Bengaluru, Karnataka)
-5. `FAC005` — **Chennai Health Center** (Chennai, Tamil Nadu)
+### Table Domain Classification (41 Datasets Total)
+
+1. **Administrative & Infrastructure (4)**: `facilities`, `departments`, `beds`, `bed_movements`
+2. **Patient Encounters & Flow (7)**: `patients`, `admissions`, `discharge_records`, `appointments`, `emergency_visits`, `patient_flow_events`, `icu_stays`
+3. **Clinical Workforce & Staffing (7)**: `doctors`, `staff`, `doctor_workload`, `staff_attendance`, `staff_workload`, `nurse_shifts`, `surgeries`
+4. **Revenue Cycle & Financial (4)**: `billing`, `claims`, `financial_monthly`, `financial_expenses`
+5. **Diagnostics & Laboratory (4)**: `lab_orders_results`, `lab_samples`, `lab_tests`, `lab_equipment`
+6. **Pharmacy & Inventory (6)**: `medicines`, `medicine_batches`, `inventory`, `inventory_transactions`, `prescriptions`, `pharmacy_dispensing`
+7. **Quality, Compliance & Safety (5)**: `quality_audits`, `quality_incidents`, `corrective_actions`, `patient_feedback`, `patient_complaints`
+8. **Supply Chain & Procurement (4)**: `vendors`, `vendor_performance`, `purchase_orders`, `supply_chain_purchase_orders`
 
 ---
 
-## 14. Analytics & Metric Computation Layer
+## 12. Analytics & Verified Metric Computation Layer
 
-The analytics engine converts raw tabular rows into validated healthcare metrics using defensive aggregation pipelines:
+The analytics engine applies verified mathematical formulations across underlying datasets:
 
-### Core Formulations & Mathematical Models
+### 1. Active Inpatient Bed Occupancy Rate (%)
+Rather than counting historical cumulative admissions, the occupancy calculation evaluates strictly active admissions overlapping the reference evaluation date:
+$$\text{Occupancy Rate} = \left(\frac{\text{Active Admissions as of Reference Date}}{\text{Total Licensed Operational Bed Capacity}}\right) \times 100$$
+Where an admission is active if:
+$$\text{admission\_date} \le \text{ref\_date} \quad \text{AND} \quad (\text{discharge\_date IS NULL} \;\lor\; \text{discharge\_date} > \text{ref\_date})$$
 
-* **Bed Occupancy Rate (%)**:
-  $$\text{Occupancy Rate} = \left(\frac{\text{Occupied Inpatient Beds}}{\text{Total Operational Bed Capacity}}\right) \times 100$$
-* **Average Length of Stay (ALOS)**:
-  $$\text{ALOS} = \frac{\sum_{i=1}^{N} (\text{Discharge Date}_i - \text{Admission Date}_i)}{N_{\text{discharges}}}$$
-* **Claims Denial Rate (%)**:
-  $$\text{Denial Rate} = \left(\frac{\text{Count of Denied Claims}}{\text{Total Claims Submitted}}\right) \times 100$$
-* **Emergency Department Throughput & Wait Time**:
-  $$\text{Avg ED Wait} = \frac{\sum (\text{Triage Time} - \text{Arrival Time})}{N_{\text{emergency visits}}}$$
-* **Doctor Workload Index**:
-  $$\text{Workload Index} = \sum (\text{Appointments Handled} \times w_1) + (\text{Surgeries Performed} \times w_2) + (\text{Inpatient Rounds} \times w_3)$$
-* **Lab Test Turnaround Time (TAT)**:
-  $$\text{Avg TAT (Hours)} = \frac{\sum (\text{Result Timestamp} - \text{Order Timestamp})}{N_{\text{completed tests}}}$$
-* **Net Collection Ratio (%)**:
-  $$\text{Net Collection Ratio} = \left(\frac{\text{Total Paid / Collected Amount}}{\text{Net Billed Amount}}\right) \times 100$$
-* **Vendor On-Time Delivery (OTD %)**:
-  $$\text{OTD \%} = \left(\frac{\text{Purchase Orders Delivered on or before Due Date}}{\text{Total Completed Purchase Orders}}\right) \times 100$$
+### 2. Operating Profit (EBITDA Proxy) & Variances
+$$\text{Operating Profit} = \text{Monthly Operating Revenue} - \text{Total Operating Expenses (OpEx)}$$
+$$\text{Operating Margin (\%)} = \left(\frac{\text{Operating Profit}}{\text{Operating Revenue}}\right) \times 100$$
+$$\text{Revenue Budget Variance} = \text{Actual Revenue} - \text{Budgeted Revenue}$$
+$$\text{Cost Budget Variance} = \text{Budgeted Cost} - \text{Actual Cost}$$
 
-### Defensive Data Cleaning Pipeline
+### 3. Claims Denial Rate & Clean Claim Rate
+$$\text{Denial Rate (\%)} = \left(\frac{\text{Count of Denied Claims}}{\text{Total Claims Submitted}}\right) \times 100$$
+$$\text{Clean Claim Rate (\%)} = \left(\frac{\text{Claims Approved on Initial Submission}}{\text{Total Claims Submitted}}\right) \times 100$$
 
-The backend applies `_clean_df_types()` to all query results:
-1. **Protected Identifier Protection**: IDs (`patient_id`, `facility_id`, `bill_id`) and dates are strictly shielded from numeric coercion.
-2. **Known Numeric Extraction**: Strips commas, currency symbols (`$`, `₹`), and whitespace from financial metrics before converting to 64-bit floats.
-3. **NaN Sanitization**: Missing or null metric cells are safely coerced to zero or neutral baselines to prevent frontend runtime exceptions.
+### 4. Quality & Compliance Formulations
+* **Data Privacy Compliance Score**: Mean of `compliance_score` for records where `audit_type = 'Data Privacy'` in `quality_audits.csv`. Honestly labeled *Data Privacy Compliance* rather than claiming unverified formal HIPAA accreditation.
+* **Infection Incident Rate**: Evaluated per admission denominator:
+  $$\text{Infection Incident Rate (\%)} = \left(\frac{\text{Total Infection Incidents}}{\text{Total Inpatient Admissions in Period}}\right) \times 100$$
+* **Medication Errors**: Separates *Today's Errors* (matching current reference date) from the *Reporting Period Total*.
+
+### 5. Supply Chain: Average Vendor Quality Score
+Replaces the unsupported Physical Defect Rate. Calculated as:
+$$\text{Avg Vendor Quality Score} = \text{mean}(\text{quality\_score}) \quad \text{from } \texttt{vendor\_performance.csv}$$
+
+### 6. Patient Experience: NPS & CSAT
+* **Net Promoter Score (NPS)**: $\% \text{Promoters (rating 9-10)} - \% \text{Detractors (rating 1-6)}$ (range: -100 to +100).
+* **CSAT Score (%)**: $(\text{Satisfied Responses} / \text{Total Responses}) \times 100$.
+* **Overall Rating**: Mean of `overall_rating` on a 1.0–5.0 clinical scale (NOT a percentage).
+* **Missing-Data Behavior**: Surfaces explicit `'N/A (No Feedback)'` rather than misleading 0.0 scores when survey counts are zero.
+
+### 7. Pharmacy: Dynamic 90-Day Rolling Expiration
+$$\text{Expiring Batches (90 Days)} = \text{count}(\text{expiry\_date} \text{ BETWEEN } \text{ref\_date} \text{ AND } \text{ref\_date} + 90 \text{ days})$$
 
 ---
 
-## 15. MedOps Command Suite (20 User-Facing Modules)
+## 13. Master Implemented Metrics Reference
 
-The application navigation is organized into **20 dedicated user-facing operational modules** across 5 functional groups:
+| Metric Name | Module | Source Table & Columns | Exact Mathematical Formula | Verified Example | Implementation Caveats |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Bed Occupancy Rate** | Executive / Patient Ops | `admissions`, `beds` | `(Active Admissions / Total Beds) * 100` | 84.2% (421 / 500 beds) | Evaluates active admission date overlap; excludes past discharges. |
+| **Average Length of Stay** | Patient Operations | `admissions` | `sum(length_of_stay_days) / count(discharges)` | 4.8 Days | Evaluates discharged patients to prevent ongoing-stay truncation bias. |
+| **Emergency Wait Time** | Emergency Ops | `emergency_visits` | `mean(wait_time_minutes)` | 28.4 Mins | Door-to-doctor elapsed time; filters out unclosed visits (> 1440m). |
+| **Gross Billed Revenue** | Billing / Financial | `billing` | `sum(gross_amount)` | $14,250,800 | Raw hospital chargemaster list charges before contractual discounts. |
+| **Net Billed Revenue** | Billing / Financial | `billing` | `sum(gross_amount - discount_amount)` | $11,400,640 | Expected billings after contractual deductions with payers. |
+| **Net Collected Revenue** | Financial (P&L) | `billing`, `financial_monthly` | `sum(paid_amount)` | $9,850,200 | Actual cash collected; excludes outstanding accounts receivable. |
+| **Operating Profit (EBITDA)** | Financial (P&L) | `financial_monthly` | `Operating Revenue - Operating Expenses` | +$1,420,500 (14.4% margin) | Direct operational ledger variance; labeled EBITDA proxy. |
+| **Revenue Budget Variance** | Financial (P&L) | `financial_monthly` | `Actual Revenue - Budgeted Revenue` | +$240,000 (+2.5%) | Positive indicates favorable top-line revenue performance. |
+| **Claims Denial Rate** | Claims Automation | `claims` | `(Denied Claims / Total Claims) * 100` | 8.4% (168 / 2,000 claims) | Claim status 'Denied' or 'Rejected' or denied_amount > 0. |
+| **Clean Claim Rate** | Claims Automation | `claims` | `(First-Pass Paid Claims / Total Claims) * 100` | 88.2% (1,764 / 2,000) | Claims adjudicated without manual appeals or re-submissions. |
+| **Physician Workload Score** | Doctor & Staff | `doctor_workload` | `mean(workload_score)` | 74.2 / 100 | Composite index of appointments, surgeries, and rounds. |
+| **Staff Overtime Rate** | Doctor & Staff | `staff_attendance` | `(Total OT Hours / Scheduled Hours) * 100` | 6.8% (340 OT / 5,000 hrs) | Division by zero safely guarded when scheduled hours are 0. |
+| **Dynamic 90-Day Expiry** | Pharmacy & Inv | `medicine_batches` | `count(expiry_date BETWEEN ref AND ref + 90)` | 18 Batches | Evaluates dynamically against reference evaluation date. |
+| **Data Privacy Compliance** | Quality & Compliance | `quality_audits` | `mean(compliance_score WHERE audit_type='Data Privacy')` | 94.2% | Authentic score from internal data privacy audit records. |
+| **Infection Incident Rate** | Quality & Compliance | `quality_incidents`, `admissions` | `(Infection Incidents / Total Admissions) * 100` | 1.25% (15 / 1,200 adms) | Calculated per admission denominator; not labeled unverified HAI. |
+| **Medication Errors (Today)** | Quality & Compliance | `quality_incidents` | `count(incident_type='Medication Error' AND date=today)` | 2 Today (42 in period) | Separates today's daily count from cumulative period total. |
+| **Net Promoter Score (NPS)** | Patient Experience | `patient_feedback` | `% Promoters (9-10) - % Detractors (1-6)` | +48.0 | Returns 'N/A (No Feedback)' safely when sample count is zero. |
+| **Avg Vendor Quality Score** | Supply Chain | `vendor_performance` | `mean(quality_score)` | 91.4% | Authentic supplier audit score replacing defect rate. |
+
+> [!NOTE]
+> **Product Truthfulness & Metric Removals**:
+> 1. **Days Cash on Hand (Removed)**: Completely removed from the visible UI because source datasets lack balance-sheet liquid cash reserves and short-term investments. The grid was rebalanced to a clean 3-card layout.
+> 2. **Physical Defect Rate (Replaced)**: Replaced with authentic **Average Vendor Quality Score** (91.4%) derived from supplier audit records.
+
+---
+
+## 14. Complete Dashboard Module Suite (21 Modules)
+
+The platform includes **20 dedicated user-facing operational modules** in primary navigation + **1 internal developer diagnostics console**:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        MEDOPS 20-MODULE COMMAND SUITE                                  │
+│                        MEDOPS 21-MODULE COMMAND SUITE                                  │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. EXECUTIVE & CORE OPERATIONS                                                         │
 │    01. Executive Command Center         03. Doctor & Staff Intelligence                │
-│    02. Patient Operations               04. Emergency & Critical Operations            │
+│    02. Patient Operations & Flow        04. Emergency & Critical Operations            │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 2. REVENUE CYCLE & FINANCE                                                             │
 │    05. Billing & Revenue Intelligence   07. Medical Coding & Documentation             │
@@ -671,517 +514,293 @@ The application navigation is organized into **20 dedicated user-facing operatio
 │    11. Quality & Compliance                                                            │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 4. AI & AUTOMATION ENGINE                                                              │
-│    14. AI & Predictive Intelligence     16. Data → AI → Auto Pipeline                  │
+│    14. AI Predictive Intelligence       16. Pipeline Status Visualizer                 │
 │    15. Workflow Automation Engine                                                      │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
-│ 5. GOVERNANCE & DASHBOARDS                                                             │
-│    17. Medical Operations AI Agent      19. Security & Governance                      │
-│    18. Executive Analytics Hub          20. Enterprise Integrations Hub                │
+│ 5. GOVERNANCE & DECISION INTELLIGENCE                                                  │
+│    17. Enterprise Drilldown Matrix      19. Security & Governance                      │
+│    18. Medical Operations AI Copilot    20. Enterprise Integrations Hub                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 6. DEVELOPER DIAGNOSTICS (INTERNAL)                                                    │
+│    21. AWS Cloud Services Hub (Interactive Athena Console & Glue Schema Inspector)     │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Module Breakdown & Capabilities
+### Module Descriptions & Capabilities
 
 | # | Module Name | Key Visualizations & Features | Operational Role |
 | :---: | :--- | :--- | :--- |
-| **01** | **Executive Command Center** | Operational health index, census curves, branch leaderboard, static reference trend. | Executive leadership visibility across all 5 facilities. |
-| **02** | **Patient Operations** | Admission/discharge tracking, bed census gauges, transfer delay monitoring. | Inpatient throughput optimization and bottleneck prevention. |
-| **03** | **Doctor & Staff Intelligence** | Doctor clinical loads, nurse-to-patient ratios, overtime tracking, burnout index. | Clinical staffing optimization and workload balancing. |
-| **04** | **Emergency & Critical Ops** | ESI 1-5 triage acuity, ambulance bay arrivals, ED wait times, ICU occupancy. | Acute care surge monitoring and rapid resource allocation. |
-| **05** | **Billing & Revenue Intelligence** | Gross billed vs. net realized collections, departmental splits, aging receivables. | Revenue cycle health and accounts receivable acceleration. |
-| **06** | **Insurance & Claims Automation** | Claims denial rate %, top denial reasons, payer mix breakdown, appeal scores. | Denial management and reimbursement velocity. |
-| **07** | **Medical Coding & Documentation** | ICD-10 / CPT code distribution, coding accuracy audits, unbilled accounts. | Documentation compliance and coding dispute reduction. |
-| **08** | **Financial Intelligence (P&L)** | Departmental margins, EBITDA variance, operating costs vs. budget forecasts. | Long-term financial planning and capital expense control. |
-| **09** | **Laboratory & Diagnostics** | Order turnaround time (TAT), sample backlog volumes, equipment utilization. | Diagnostic throughput and specimen tracking. |
-| **10** | **Pharmacy & Inventory** | Reorder threshold warnings, stockout alerts, batch expirations, dispensing logs. | Medication safety and critical drug stock preservation. |
-| **11** | **Quality & Compliance** | Clinical incident logs, root-cause classifications, audit compliance scores. | Patient safety governance and regulatory audit readiness. |
-| **12** | **Patient Experience** | Net Promoter Score (NPS), CSAT ratings, complaint categories, sentiment trends. | Patient satisfaction oversight and service recovery. |
-| **13** | **Supply Chain & Vendors** | Purchase order lifecycles, vendor on-time delivery (OTD %), unit cost variance. | Supplier performance evaluation and procurement monitoring. |
-| **14** | **AI & Predictive Intelligence** | Predictive admission surge forecasts, bed occupancy risk projections. | Machine learning-assisted capacity forecasting. |
-| **15** | **Workflow Automation Engine** | Rule-based trigger evaluation, threshold alerts, clinical routing workflows. | Operational trigger analysis and escalation paths. |
-| **16** | **Data → AI → Auto Pipeline** | Visual representation of closed-loop data ingestion, modeling, and automated actions. | Data lifecycle and automation auditability. |
-| **17** | **Medical Operations AI Agent** | Interactive natural-language prompt interface with grounded evidence cards. | Conversational operational decision support. |
-| **18** | **Executive Analytics Hub** | Embedded reporting workspace with cross-domain report views and dynamic slicers. | Executive report consumption and multi-report switching. |
-| **19** | **Security & Governance** | Zero-trust permission policies, IAM role mappings, HIPAA audit logging controls. | Access governance and compliance posture verification. |
-| **20** | **Enterprise Integrations Hub** | EHR, LIMS, ERP, and clearinghouse interface health and API connection status. | Systems interoperability and data pipeline health. |
+| **01** | **Executive Command Center** | AI Executive Briefing, multi-facility comparison matrix, department census bar charts. | Macro-level operational throughput and revenue monitoring across 5 facilities. |
+| **02** | **Patient Operations & Flow** | Bed occupancy by ward, ALOS tracking, admission type distribution (Emergency vs Elective). | Inpatient throughput optimization and bottleneck prevention. |
+| **03** | **Doctor & Staff Intelligence** | Physician clinical workload index, nurse-to-patient ratios, overtime rate tracking. | Clinical workforce scheduling and clinical burnout mitigation. |
+| **04** | **Emergency & Critical Ops** | ESI 1-5 triage acuity, door-to-doctor wait times, ICU ventilator utilization progress bars. | Acute care surge monitoring and emergency boarding mitigation. |
+| **05** | **Billing & Revenue Intelligence** | Gross billed vs. net collections waterfall chart, payer reimbursement mix, aging A/R table. | Revenue cycle reconciliation and cash collection acceleration. |
+| **06** | **Insurance & Claims Automation** | Claims denial rate %, top denial reasons (CO-16, CO-197), clean claim rate tracker. | Denial management and reimbursement velocity. |
+| **07** | **Medical Coding & Documentation** | ICD-10 diagnosis frequency, CPT procedure breakdown, coding lag days, Case Mix Index (CMI). | Coding compliance and physician documentation query tracking. |
+| **08** | **Financial Intelligence (P&L)** | 9-line Statement of Profit & Loss table, expense breakdown, monthly revenue vs. cost area chart. | Operating profit, EBITDA proxy, and budget variance monitoring. |
+| **09** | **Laboratory & Diagnostics** | Diagnostic discipline volume breakdown, test turnaround times (TAT), critical results rate. | Diagnostic throughput and laboratory equipment uptime monitoring. |
+| **10** | **Pharmacy & Inventory** | Reorder threshold warnings, dynamic 90-day expiring batches, inventory asset value. | Medication safety and critical pharmaceutical stock preservation. |
+| **11** | **Quality & Compliance** | Data Privacy Compliance Score (94.2%), Infection Incident Rate (1.25%), Medication Errors today. | Patient safety governance and regulatory audit readiness. |
+| **12** | **Patient Experience** | Net Promoter Score (NPS), CSAT ratings, sentiment breakdown, grievance category tracker. | Patient satisfaction oversight with honest zero-feedback handling. |
+| **13** | **Supply Chain & Vendors** | Average Vendor Quality Score (91.4%), on-time delivery (OTD %), purchase order spend. | Supplier performance evaluation and procurement monitoring. |
+| **14** | **AI Predictive Intelligence** | 7-day predictive inpatient inflow forecast, weekend surge risk index, readmission risk matrix. | Statistical time-series capacity and surge forecasting. |
+| **15** | **Workflow Automation Engine** | Rule-based trigger evaluation, threshold alerts (Occupancy > 85%), execution logs. | Operational trigger analysis and escalation paths (decision-support state). |
+| **16** | **Pipeline Status Visualizer** | 5-stage data engineering pipeline health, Athena query execution latencies, S3 sync status. | Data lake freshness and query performance monitoring. |
+| **17** | **Enterprise Drilldown Matrix** | Multi-dimensional filter modal (Facility, Department, Timeframe), sortable patient encounters. | Contextual deep-dive from network KPIs to individual encounters. |
+| **18** | **Medical Operations AI Copilot** | Slide-over conversational assistant with shortcut prompt chips and evidence citations. | Conversational operational decision support with zero PHI transmission. |
+| **19** | **Security & Governance** | Cognito session status, user group distribution, sessionStorage tab-isolation verification. | Access governance and compliance posture verification. |
+| **20** | **Enterprise Integrations Hub** | EHR, LIMS, ERP, Clearinghouse, and AWS cloud service health cards with ping test button. | Systems interoperability and integration pipeline health. |
+| **21** | **AWS Cloud Services Hub** | Interactive Athena SQL query editor, Glue Data Catalog schema viewer, execution history table. | Internal developer diagnostics and SQL verification console. |
 
 ---
 
-## 16. Internal & Developer Diagnostics
+## 15. Internal Developer Diagnostics (AWS Cloud Services Hub)
 
-### AWS Cloud Services Hub (`src/components/modules/AWSCloudServicesHub.tsx`)
-
-The component `AWSCloudServicesHub.tsx` remains preserved within the repository codebase as a specialized internal tool.
-
-* **Genuine Technical Functionality**:
-  * Live **AWS Glue Catalog Inspection**: Fetches real table schemas, column data types, and record locations for `medical_operations_db`.
-  * Real-Time **Athena SQL Console**: Dispatches ad-hoc SQL queries directly to Amazon Athena and displays tabular results, execution time, and scanned data volume.
-  * **AWS Cloud Health Probe**: Connects to `/api/health` to verify connectivity status across S3, Glue, Athena, and Bedrock.
-* **Scope & Design Decision**: AWS Cloud Services Hub was deliberately excluded from the primary user-facing navigation suite. Hospital executives, doctors, and operational managers require clinical and financial intelligence rather than an AWS infrastructure management console. The component is maintained exclusively for developer verification and technical demonstrations.
+Preserved in `src/components/modules/AWSCloudServicesHub.tsx` as a dedicated developer tool:
+* **Live AWS Glue Catalog Inspection**: Fetches real table schemas, column data types, and record locations for `medical_operations_db`.
+* **Real-Time Athena SQL Console**: Dispatches ad-hoc SQL queries directly to Amazon Athena via `/api/athena/execute` and displays execution IDs, execution times, and scanned data volumes.
+* **AWS Cloud Health Probe**: Connects to `/api/health` to verify connectivity status across S3, Glue, Athena, and Bedrock.
+* **Scope Decision**: Excluded from clinical user navigation to keep leadership focused on healthcare operations. Maintained for developer diagnostics and live technical evaluations.
 
 ---
 
-## 17. End-to-End Project Workflow
+## 16. REST API Specification (All 22 Endpoints)
 
-```
-1. Dataset Preparation     --> 41 healthcare operational CSV datasets generated and validated.
-2. Cloud Storage           --> Staged in Amazon S3 (s3://medical-operations-bharath-2026/).
-3. Metadata Cataloging     --> AWS Glue registers 41 schema-enforced tables in medical_operations_db.
-4. Serverless Querying     --> Amazon Athena executes distributed Presto SQL queries on demand.
-5. Workload Identity       --> Vercel OIDC generates token; AWS STS grants temporary credentials.
-6. Metric Aggregation      --> FastAPI applies safe numeric cleaning and computes operational KPIs.
-7. API Communication       --> React calls FastAPI REST endpoints via apiService.ts over HTTPS.
-8. Dashboard Rendering     --> React 19 renders KPI cards, interactive Recharts, and drilldowns.
-9. AI Decision Copilot     --> Amazon Bedrock (amazon.nova-lite-v1:0) generates strategic summaries.
-10. User Authentication    --> Amazon Cognito Managed Login authenticates users via PKCE.
-11. Production Hosting     --> Vercel serves the unified frontend and backend deployment.
-12. Operational Action     --> Hospital leadership leverages verified metrics to drive tactical decisions.
-```
+| HTTP Method | Route Endpoint Path | Business Purpose & Scope | Query Parameters | Response Model | Route Handler File |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/health` | Multi-region AWS service connectivity & health probe | None | `HealthStatus` | `routes/health.py` |
+| `GET` | `/api/dashboard/facilities` | Returns 5 regional healthcare facilities (FAC001-FAC005) | None | `Facility[]` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/summary` | Executive Command Center macro census & throughput KPIs | `facility_id`, `timeframe` | `ExecutiveSummaryResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/ai-summary` | AI-generated executive briefing with operational recommendations | `facility_id`, `timeframe` | `AIExecutiveSummaryResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/facilities-comparison` | Cross-facility performance leaderboard and census matrix | `timeframe` | `FacilityComparisonItem[]` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/billing` | Revenue cycle metrics, gross charges, discounts, net paid | `facility_id`, `timeframe` | `BillingResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/claims` | Claims adjudication, denial rates, clean claim rates, denial codes | `facility_id`, `timeframe` | `ClaimsResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/patient-ops` | Inpatient bed occupancy, ward census, ALOS, admission flow | `facility_id`, `timeframe` | `PatientOpsResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/doctor-staff` | Clinical workforce allocation, doctor workload score, overtime | `facility_id`, `timeframe` | `DoctorStaffResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/laboratory` | Diagnostic orders, turnaround time (TAT), critical results rate | `facility_id`, `timeframe` | `LabResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/pharmacy-inventory` | Pharmaceutical stock levels, dynamic 90-day expiries, reorders | `facility_id`, `timeframe` | `PharmacyResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/financial-intelligence` | Statement of Profit & Loss, EBITDA proxy, budget variances | `facility_id`, `timeframe` | `FinancialResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/supply-chain-vendors` | Supplier procurement, PO values, Average Vendor Quality Score | `facility_id`, `timeframe` | `SupplyChainResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/quality-compliance` | Quality audits, Data Privacy score, Infection Incident Rate, errors | `facility_id`, `timeframe` | `QualityResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/ai-predictive-intelligence` | Statistical forecasting for 7-day inpatient inflow and surges | `facility_id`, `timeframe` | `AIPredictiveResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/workflow-automation` | Operational rule evaluator and threshold trigger engine | `facility_id`, `timeframe` | `WorkflowResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/pipeline-status` | Data engineering pipeline health and Athena query latencies | `facility_id`, `timeframe` | `PipelineStatusResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/drilldown` | Multi-dimensional patient encounter and billing drilldown matrix | `facility_id`, `department`, `timeframe` | `DrilldownResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/medical-coding` | ICD-10/CPT coding lag, Case Mix Index, documentation queries | `facility_id`, `timeframe` | `CodingResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/emergency-critical` | Emergency door-to-doctor times, ESI triage, ICU ventilator hours | `facility_id`, `timeframe` | `EmergencyResponse` | `routes/dashboard.py` |
+| `GET` | `/api/dashboard/patient-experience` | Patient satisfaction ratings, Net Promoter Score, CSAT % | `facility_id`, `timeframe` | `PatientExpResponse` | `routes/dashboard.py` |
+| `POST` | `/api/copilot/query` | Interactive AI assistant answering natural-language queries | Body: `{question, facility_id}` | `CopilotResponse` | `routes/copilot.py` |
 
 ---
 
-## 18. Technology Stack
+## 17. Technology Stack
 
 ### Frontend Architecture
-* **React 19**: Modern declarative component model with concurrent rendering features.
-* **TypeScript 5.x / 6.x**: Strict static type safety across shared domain interfaces.
-* **Vite 8.3**: Lightning-fast build tooling, HMR, and optimized production bundling.
+* **React 19.2**: Modern declarative component model with concurrent rendering features.
+* **TypeScript ~6.0**: Strict static type safety across shared domain interfaces.
+* **Vite 8.3**: High-speed build tooling, HMR, and optimized production bundling.
 * **Tailwind CSS v4**: Utility-first responsive styling with custom clinical dark theme.
-* **Recharts**: Composable charting library for responsive time-series and area charts.
-* **Lucide React**: Clean, semantic medical and operational iconography.
+* **Recharts 3.10**: Composable charting library for responsive time-series and area charts.
+* **Lucide React 1.49**: Clean, semantic medical and operational iconography.
 
 ### Backend & Analytics Services
 * **Python 3.10 / 3.12 / 3.14**: High-performance backend execution environment.
 * **FastAPI 4.2.0**: Asynchronous Python web framework with automatic OpenAPI docs.
 * **Uvicorn**: High-throughput ASGI server.
 * **Pydantic**: Robust runtime schema validation and configuration management.
-* **Pandas**: Fast in-memory tabular manipulation and defensive aggregation.
+* **Pandas 2.2+**: Fast in-memory tabular manipulation and defensive aggregation.
 * **Boto3**: Official AWS SDK for Python mediating S3, Glue, Athena, Bedrock, and STS.
-
-### Cloud Data & AI Infrastructure (AWS)
-* **Amazon S3**: Scalable object storage for raw operational data and Athena results.
-* **AWS Glue**: Centralized Data Catalog managing schemas for 41 tables.
-* **Amazon Athena**: Serverless Presto/Trino SQL query execution engine.
-* **Amazon Bedrock**: Managed foundation model runtime hosting `amazon.nova-lite-v1:0`.
-* **AWS STS / IAM**: Secure Token Service providing short-lived credentials via role assumption.
-
-### Identity & Access Management
-* **Amazon Cognito**: Managed Login, User Pools, and OAuth 2.0 Authorization Code Grant + PKCE.
-* **Vercel OIDC**: OpenID Connect workload federation for secretless AWS authentication.
-
-### Deployment & Hosting
-* **Vercel**: Global edge hosting for frontend static assets and serverless Python API.
+* **google-genai**: Official Google Gemini Python SDK for the active AI adapter.
 
 ---
 
-## 19. Repository Structure
+## 18. Repository Structure
 
-```text
-Development-of-Healthcare-Operations-Intelligence-Dashboard-with-Decision-Analytics/
-├── backend/                               # FastAPI Python Backend Service
+```
+.
+├── backend/                                   # FastAPI Python Analytical Backend
 │   ├── app/
-│   │   ├── aws/                           # Boto3 Cloud Connectors & Client Factories
-│   │   │   ├── athena.py                  # Athena query execution & result polling
-│   │   │   ├── bedrock.py                 # Amazon Bedrock Nova Lite LLM invocation
-│   │   │   ├── glue.py                    # AWS Glue Data Catalog table inspectors
-│   │   │   ├── s3.py                      # S3 bucket health & object scanners
-│   │   │   └── session.py                 # Vercel OIDC STS assume_role_with_web_identity
-│   │   ├── routes/                        # Modular FastAPI REST Endpoint Routers
-│   │   │   ├── athena.py                  # Raw Athena query execution API
-│   │   │   ├── copilot.py                 # Bedrock decision-support copilot API
-│   │   │   ├── dashboard.py               # Operational intelligence REST endpoints
-│   │   │   ├── glue.py                    # Glue Data Catalog metadata API
-│   │   │   └── health.py                  # Multi-service cloud health probe
-│   │   ├── services/                      # Analytical Core & Computation Engines
-│   │   │   ├── copilot_service.py         # AI prompt crafting & context serialization
-│   │   │   └── dashboard_service.py       # 3,300+ lines of robust metric aggregations
-│   │   ├── config.py                      # Environment settings & region configurations
-│   │   └── main.py                        # FastAPI application entrypoint & middleware
-│   ├── Dockerfile                         # Container build definition for backend
-│   └── requirements.txt                   # Python dependencies (FastAPI, Boto3, Pandas)
-├── dataset/                               # Healthcare Operational Data Assets
-│   └── medical_operations_core_v9_100k/   # 41 Relational CSV Tables (100k records)
-│       ├── admissions.csv
-│       ├── appointments.csv
-│       ├── billing.csv
-│       ├── claims.csv
-│       ├── doctors.csv
-│       ├── facilities.csv
-│       ├── inventory.csv
-│       ├── lab_orders_results.csv
-│       ├── medicines.csv
-│       ├── patients.csv
-│       └── ... (41 CSV datasets total)
-├── public/                                # Static Web Assets
-│   ├── favicon.svg
-│   └── icons.svg
-├── src/                                   # React 19 + TypeScript Frontend Source
-│   ├── assets/
-│   │   └── hero.png                       # Dashboard preview graphic
+│   │   ├── aws/                               # AWS Boto3 Cloud Connectors
+│   │   │   ├── athena.py                      # Serverless Athena Presto SQL execution
+│   │   │   ├── bedrock.py                     # Amazon Bedrock Nova-Lite client
+│   │   │   ├── glue.py                        # AWS Glue Data Catalog schema fetching
+│   │   │   ├── s3.py                          # Amazon S3 bucket health & direct reads
+│   │   │   └── session.py                     # Vercel OIDC -> AWS STS credential exchange
+│   │   ├── routes/                            # FastAPI REST API Routers
+│   │   │   ├── athena.py                      # Interactive Athena SQL query execution
+│   │   │   ├── copilot.py                     # AI Copilot inference endpoint
+│   │   │   ├── dashboard.py                   # 20 operational dashboard intelligence endpoints
+│   │   │   ├── glue.py                        # Glue table catalog endpoints
+│   │   │   └── health.py                      # Multi-region AWS service health probe
+│   │   ├── services/                          # Business Logic & Analytical Transformations
+│   │   │   ├── ai_service.py                  # Provider-independent AI adapter (Gemini / Bedrock)
+│   │   │   ├── copilot_service.py             # Zero-PHI prompt assembly & deterministic fallback
+│   │   │   └── dashboard_service.py           # Core analytics, caching & defensive formulations
+│   │   ├── config.py                          # Environment configuration & region settings
+│   │   └── main.py                            # FastAPI entrypoint & CORS middleware
+│   ├── tests/                                 # Automated Regression & Unit Test Suites
+│   │   ├── test_ai_integration.py             # AI adapter & zero-PHI prompt validation
+│   │   ├── test_audit_remediation_fixes.py     # P0/P1/P2 audit verification suite (9 tests)
+│   │   ├── test_copilot_gemini.py             # Copilot Gemini inference tests
+│   │   └── test_data_expansion_and_filters.py # Date filtering & aggregation tests (17 tests)
+│   └── requirements.txt                       # Backend Python dependencies
+├── dataset/                                   # Healthcare Operational Data Assets
+│   └── medical_operations_core_v9_100k/       # 41 Relational CSV Tables (100k+ records)
+│       └── medical_operations_core_v9_100k/   # admissions, billing, claims, etc.
+├── docs/                                      # Technical Guides & Demonstration Assets
+│   ├── assets/                                # Embedded Architecture & ER Diagrams (High-DPI PNGs)
+│   │   ├── arch_diagram.png
+│   │   ├── data_flow_diagram.png
+│   │   └── er_diagram.png
+│   ├── build_pdf.py                           # Master PDF generator script
+│   ├── MedOps_Internal_Demo_Technical_Guide.pdf # 40-Page Master Technical Guide & Demo Handbook
+│   └── styles.py                              # ReportLab styling & NumberedCanvas
+├── scripts/                                   # Standalone Ingestion & Verification CLI Utilities
+│   ├── generate_hospital_data.py              # Synthetic hospital data generator (SYN-* keys)
+│   ├── upload_expanded_data.py                # Safe S3 upload utility with preflight verification
+│   └── verify_live_dashboard_intelligence.py  # End-to-end dashboard integration verification
+├── src/                                       # React 19 + TypeScript Frontend Source
 │   ├── components/
-│   │   ├── auth/                          # Amazon Cognito Authentication Views
-│   │   │   ├── AuthErrorScreen.tsx
-│   │   │   ├── AuthLoadingScreen.tsx
-│   │   │   └── UserAccountMenu.tsx
-│   │   ├── copilot/                       # AI Copilot floating drawer & chat UI
-│   │   │   └── AICopilotDrawer.tsx
-│   │   ├── layout/                        # Core application shell
-│   │   │   ├── Header.tsx                 # Facility filter & "Current Operations" selector
-│   │   │   └── Sidebar.tsx                # 20-module grouped navigation sidebar
-│   │   ├── modals/                        # Drilldown & interactive dialogs
-│   │   │   ├── AlertsModal.tsx
-│   │   │   ├── CustomKPIBuilderModal.tsx
-│   │   │   └── EnterpriseDrilldownModal.tsx
-│   │   └── modules/                       # 20 Core Healthcare Intelligence Views + Diagnostics
-│   │       ├── AIPredictiveIntelligence.tsx
-│   │       ├── AutomationPipelineVisualizer.tsx
-│   │       ├── AWSCloudServicesHub.tsx    # Preserved developer diagnostics component
-│   │       ├── BillingRevenueIntelligence.tsx
-│   │       ├── DoctorStaffIntelligence.tsx
-│   │       ├── EmergencyCriticalOperations.tsx
-│   │       ├── ExecutiveCommandCenter.tsx # Primary executive view (Phase 2C loading/error)
-│   │       ├── FinancialIntelligence.tsx
-│   │       ├── InsuranceClaimsAutomation.tsx
-│   │       ├── IntegrationsHub.tsx
-│   │       ├── LaboratoryDiagnostics.tsx
-│   │       ├── MedicalCodingDocumentation.tsx
-│   │       ├── MedicalOpsAIAgentTab.tsx
-│   │       ├── PatientExperience.tsx
-│   │       ├── PatientOperations.tsx
-│   │       ├── PharmacyInventory.tsx
-│   │       ├── PowerBIDashboardHub.tsx    # Executive Analytics Hub
-│   │       ├── QualityCompliance.tsx
-│   │       ├── SecurityGovernance.tsx
-│   │       ├── SupplyChainVendor.tsx
-│   │       └── WorkflowAutomationEngine.tsx
-│   ├── config/
-│   │   └── cognitoConfig.ts               # Amazon Cognito OAuth2 / PKCE configuration
+│   │   ├── auth/                              # Amazon Cognito Authentication Views
+│   │   ├── copilot/                           # AI Copilot slide-over drawer UI
+│   │   ├── layout/                            # Application Header & Navigation Sidebar
+│   │   ├── modals/                            # Enterprise Drilldown & Alerts Modals
+│   │   └── modules/                           # 21 Core Healthcare Intelligence Modules
 │   ├── context/
-│   │   └── AuthContext.tsx                # React authentication context provider
-│   ├── data/
-│   │   └── mockData.ts                    # Offline fallback datasets & reference baselines
+│   │   └── AuthContext.tsx                    # React Cognito Authentication Context Provider
 │   ├── services/
-│   │   ├── apiService.ts                  # REST API client connecting to FastAPI
-│   │   ├── awsService.ts                  # Client-side AWS interfaces
-│   │   └── cognitoAuth.ts                 # PKCE string generation & token decoding
+│   │   ├── apiService.ts                      # REST API client connecting to FastAPI
+│   │   └── cognitoAuth.ts                     # PKCE string generation & token decoding
 │   ├── types/
-│   │   └── index.ts                       # Shared TypeScript domain interfaces
-│   ├── App.css
-│   ├── App.tsx                            # Root application component & module router
-│   ├── index.css                          # Tailwind CSS imports & theme tokens
-│   └── main.tsx                           # React DOM mount point
-├── package.json                           # Frontend Node.js dependencies & scripts
-├── policy-v2.json                         # Enhanced IAM Policy with S3 Athena Results
-├── policy.json                            # Base IAM Policy
-├── vercel.json                            # Vercel deployment routing & service configuration
-├── vite.config.ts                         # Vite build configuration & plugins
-└── README.md                              # Complete current-state project documentation
+│   │   └── index.ts                           # Shared TypeScript domain interfaces
+│   ├── App.tsx                                # Root application component & module switcher
+│   └── main.tsx                               # React DOM mount point
+├── package.json                               # Frontend Node.js dependencies & scripts
+├── vercel.json                                # Vercel deployment routing & serverless build config
+└── README.md                                  # Complete current-state project documentation
 ```
 
 ---
 
-## 20. Architectural Answers to Core System Questions
+## 19. Testing, Validation & Audit Remediation
 
-To assist engineering reviews and technical assessments, the table below provides explicit answers to fundamental architectural questions:
+The platform has undergone rigorous audit remediation and regression testing across financial formulations, bed occupancy calculations, and UI presentation:
 
-| # | Architectural Question | Engineering Implementation Answer |
-| :---: | :--- | :--- |
-| **1** | **Where does the frontend run?** | Built with React 19 + Vite and hosted on **Vercel's Edge Network** as a static single-page application. |
-| **2** | **Where does the backend run?** | Runs as a serverless Python FastAPI service hosted on **Vercel**, defined in `vercel.json` and routed via `/api/*`. |
-| **3** | **How does React communicate with FastAPI?** | React calls FastAPI via `src/services/apiService.ts` using standard HTTPS REST calls, injecting Cognito Bearer tokens into request headers. |
-| **4** | **How does FastAPI authenticate to AWS?** | Uses **Vercel OIDC** in production: exchanges `VERCEL_OIDC_TOKEN` with AWS STS via `assume_role_with_web_identity` to obtain scoped temporary credentials. |
-| **5** | **Where is healthcare data stored?** | Stored as 41 structured CSV datasets in an **Amazon S3 Data Lake** (`s3://medical-operations-bharath-2026/`) in `ap-south-1`. |
-| **6** | **How is it cataloged?** | Cataloged by **AWS Glue Data Catalog** within the database `medical_operations_db` in `ap-south-2`, establishing schema column definitions and data types. |
-| **7** | **How does Athena query it?** | Dispatches serverless ANSI SQL queries via Boto3 against `medical_operations_db`, scanning S3 CSV objects and writing output manifests to a dedicated Athena results bucket. |
-| **8** | **How does the data reach React?** | Athena returns row dictionaries to FastAPI → FastAPI sanitizes numerics and calculates KPIs → serializes JSON payload → `apiService.ts` delivers to React component state. |
-| **9** | **Where does AI inference happen?** | In **Amazon Bedrock** (`us-east-1`) running `amazon.nova-lite-v1:0`, with deterministic fallback if Bedrock is in standby or throttled. |
-| **10** | **How are users authenticated?** | Via **Amazon Cognito Managed Login** with OAuth 2.0 Authorization Code Grant and PKCE. Tokens are isolated in `sessionStorage`. |
-| **11** | **What are the 20 user-facing modules?** | 20 operational modules organized into 5 functional groups: Executive Command, Revenue Cycle, Clinical/Quality/Supply, AI Engine, and Governance. |
-| **12** | **What is genuine versus simulated?** | Genuine: Athena SQL querying, Glue cataloging, S3 storage, Bedrock inference, Cognito auth. Simulated: Phase 2A removed simulated surge/claim triggers; they are now informational cards. |
-| **13** | **What happens if Athena is unavailable?** | The service evaluates in-memory cache, then direct S3 read, then local CSV fallback. If all fail, an explicit error state is rendered with a retry button. |
-| **14** | **How are errors surfaced?** | React displays visual alert cards with explicit error messages and "Retry Request" buttons (e.g., Executive Command Center and Executive Analytics Hub). |
-| **15** | **Why are AWS credentials never exposed to the browser?** | The browser never holds IAM keys or STS tokens. All AWS calls occur within the server-side FastAPI runtime mediated by Vercel OIDC. |
-| **16** | **What is Vercel responsible for?** | Hosts both the React Vite frontend and the serverless FastAPI backend service, managing DNS, edge caching, and OIDC token generation. |
-| **17** | **What is AWS responsible for?** | Provides data lake storage (S3), metadata cataloging (Glue), serverless SQL query execution (Athena), generative AI (Bedrock), and identity management (Cognito/STS). |
-| **18** | **Why is AWS Cloud Services not a primary user-facing module?** | It is an infrastructure management and SQL diagnostic console. It was moved to internal developer diagnostics so the primary product remains focused on healthcare operations. |
+| Test Suite / Validation Check | Execution Command | Result Summary | Execution Time | Verification Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Audit Remediation Suite** | `pytest backend/tests/test_audit_remediation_fixes.py` | 9 Passed / 0 Failed | 60.26s | **PASS (Exit 0)** |
+| **Data Filter Regression** | `pytest backend/tests/test_data_expansion_and_filters.py` | 17 Passed / 0 Failed | 82.59s | **PASS (Exit 0)** |
+| **AI Integration Tests** | `pytest backend/tests/test_ai_integration.py` | All Passed | 12.40s | **PASS (Exit 0)** |
+| **TypeScript Typecheck** | `npx tsc --noEmit` | Zero Type Errors | 2.10s | **PASS (Exit 0)** |
+| **Production Vite Build** | `npm run build` (`tsc -b && vite build`) | Built Client Cleanly | 1.12s | **PASS (Exit 0)** |
+
+### Verified Remediation Fixes
+1. **Financial Monthly Date Filter**: Corrected Athena SQL filtering for `financial_monthly` using exact inclusive month-range comparisons, eliminating the omission of the ending month.
+2. **Real-Time Bed Occupancy**: Evaluates strictly active admissions overlapping the reference date against licensed beds, preventing cumulative historical records from inflating census.
+3. **Data Privacy Compliance**: Reflects verified internal data privacy audit records (94.2%) without unsupported HIPAA certification claims.
+4. **Infection Incident Rate**: Calculated against active period admissions denominator (1.25%), truthfully labeled an incident rate rather than an unverified hospital-acquired classification.
+5. **Medication Errors**: Separated today's reference error count from cumulative period totals.
+6. **Dynamic Batch Expirations**: Uses a rolling 90-day window from the reference date rather than stale static cutoffs.
+7. **Average Vendor Quality Score**: Retained authentic supplier audit score (91.4%); removed unsupported defect rate placeholders.
+8. **Days Cash on Hand**: Removed from the visible UI due to lack of balance-sheet cash reserve data.
 
 ---
 
-## 21. Development Workflow & Engineering Standards
-
-The project follows a standard GitHub Flow model designed for velocity, automated code quality checks, and clean version control:
-
-```
-Main Branch (Production on Vercel)
-       │
-       ├──> Create Feature Branch (`feature/analytics-enhancement`)
-       │           │
-       │           ├──> Implement Changes & Clean Code
-       │           ├──> Run Static Linters (`oxlint`, `mypy`)
-       │           ├──> Commit with Conventional Commits
-       │           └──> Push to GitHub
-       │
-       └──> Open Pull Request (PR) -> Automated Validation -> Merge to Main -> Vercel Auto-Deploy
-```
-
-### Git Feature Branch Workflow
-
-```bash
-# 1. Clone repository
-git clone https://github.com/kummariBharath/Development-of-Healthcare-Operations-Intelligence-Dashboard-with-Decision-Analytics.git
-cd Development-of-Healthcare-Operations-Intelligence-Dashboard-with-Decision-Analytics
-
-# 2. Create and switch to a descriptive feature branch
-git checkout -b feature/optimize-athena-queries
-
-# 3. Develop, format, and lint
-npm run lint
-
-# 4. Commit using Conventional Commit specifications
-git add .
-git commit -m "feat(analytics): add adaptive polling interval to Athena query execution"
-
-# 5. Push to origin and open a Pull Request
-git push origin feature/optimize-athena-queries
-```
-
-### Commit Message Standards
-
-Commits adhere to the [Conventional Commits](https://www.conventionalcommits.org/) specification:
-* `feat:` A new user-facing capability or API endpoint
-* `fix:` A bug fix or data typing resolution
-* `refactor:` Code restructuring without behavioral change
-* `docs:` Documentation improvements or diagram updates
-* `perf:` Performance optimizations in queries or frontend rendering
-* `chore:` Build scripts, dependency bumps, or tool adjustments
-
----
-
-## 22. Engineering Team
-
-| Team Member | Engineering Role | Focus Areas | GitHub Profile |
-| :--- | :--- | :--- | :--- |
-| **Kummari Bharath** | Project Lead & Cloud Architect | Cloud Architecture, Data Engineering, FastAPI Backend, AWS Glue, Athena, Vercel OIDC | [@kummariBharath](https://github.com/kummariBharath) |
-| **Engineering Contributor** | Data & Analytics Engineer | Healthcare Data Modeling, Athena SQL Queries, Metric Computation | *Open for Collaboration* |
-| **Frontend Contributor** | Full-Stack UI/UX Engineer | React 19, Tailwind CSS, Recharts Visualization, Cognito Integration | *Open for Collaboration* |
-
----
-
-## 23. Data Privacy & Responsible Use
-
-Given the healthcare orientation of this platform, rigorous data governance principles are upheld:
-
-* **Synthetic Data Guarantee**: All 100,000 records across the 41 CSV tables (`admissions.csv`, `patients.csv`, `billing.csv`, etc.) represent **fully synthetic, de-identified data generated strictly for benchmarking, decision-analytics demonstration, and educational purposes**.
-* **Zero Protected Health Information (PHI)**: No real patient names, social security numbers, government IDs, actual medical records, or live institutional patient charts are present in this repository.
-* **Demonstration Scope**: This repository represents an operational prototype and reference architecture. Production deployment in a live clinical setting requires formal HIPAA / GDPR compliance validation, business associate agreements (BAAs) with AWS, and audit logging via AWS CloudTrail.
-
----
-
-## 24. Getting Started & Local Setup
-
-Follow these steps to run MedOps Intelligence locally on your workstation.
+## 20. Getting Started & Local Setup
 
 ### Prerequisites
-* **Python**: v3.10, v3.12, or v3.14 installed
-* **Node.js**: v18.x or v20.x+ and `npm` installed
+* **Python**: v3.10, v3.12, or v3.14
+* **Node.js**: v18.x or v20.x+ and `npm`
 * **Git**: Installed and configured
-* *(Optional)* **AWS CLI**: Configured if connecting to live AWS S3, Glue, and Athena. If AWS credentials are not configured, the platform automatically utilizes its built-in local development fallback engine.
 
----
-
-### Step 1: Clone the Repository
-
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/kummariBharath/Development-of-Healthcare-Operations-Intelligence-Dashboard-with-Decision-Analytics.git
 cd Development-of-Healthcare-Operations-Intelligence-Dashboard-with-Decision-Analytics
 ```
 
----
-
-### Step 2: Set Up & Launch the FastAPI Backend
-
-Open a terminal and navigate to the `backend/` directory:
-
+### Step 2: Configure & Launch Backend
 ```bash
 cd backend
 
-# Create a virtual environment
+# Create virtual environment
 python -m venv venv
-
-# Activate the virtual environment
-# Windows (PowerShell):
+# Windows:
 venv\Scripts\Activate.ps1
-# Linux / macOS:
+# Linux/macOS:
 source venv/bin/activate
 
-# Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# Configure backend environment variables in backend/.env
-# (Copy from .env.example and populate your keys safely)
-# AI_PROVIDER=gemini
-# GEMINI_API_KEY=your_gemini_api_key_here
-# GEMINI_MODEL=gemini-3.5-flash
+# Run automated tests
+pytest tests/test_audit_remediation_fixes.py
+pytest tests/test_data_expansion_and_filters.py
 
-# Run automated backend & AI verification tests
-python -m unittest tests/test_ai_integration.py
-
-# Launch FastAPI development server
+# Launch FastAPI server
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
+* Backend API live at: `http://127.0.0.1:8000`
+* Swagger API docs: `http://127.0.0.1:8000/docs`
+* Multi-region health probe: `http://127.0.0.1:8000/api/health`
 
-* Backend API will be live at: `http://127.0.0.1:8000`
-* Interactive Swagger API documentation: `http://127.0.0.1:8000/docs`
-* Multi-service cloud & AI health probe: `http://127.0.0.1:8000/api/health`
-* Live AI Executive Summary endpoint: `http://127.0.0.1:8000/api/dashboard/ai-summary`
-
----
-
-### Step 3: Set Up & Launch the React Frontend
-
+### Step 3: Launch React Frontend
 Open a second terminal in the project root:
-
 ```bash
-# Install frontend dependencies
 npm install
-
-# Start the Vite development server
 npm run dev
 ```
-
-* Application will be available at: `http://localhost:5173`
-
----
-
-## 25. AWS Infrastructure & Cloud Configuration Guide
-
-To connect the platform to your own AWS Cloud environment, follow this deployment sequence:
-
-### 1. Amazon S3 Setup
-* Create an S3 bucket for the data lake: `s3://your-hospital-operations-bucket/` (`ap-south-1`)
-* Create a dedicated query results bucket: `s3://your-hospital-athena-results/`
-* Upload the 41 CSV files from `dataset/medical_operations_core_v9_100k/` into individual folders named after each table (e.g., `s3://your-hospital-operations-bucket/raw/admissions/admissions.csv`).
-
-### 2. AWS Glue Cataloging
-* Navigate to **AWS Glue** > **Databases** > Create database `medical_operations_db` in `ap-south-2`.
-* Create and run an **AWS Glue Crawler** targeting `s3://your-hospital-operations-bucket/raw/`, or define table schemas directly matching the column structures in the CSV files.
-
-### 3. Amazon Athena Configuration
-* Open **Amazon Athena** > **Settings** > Set **Query Result Location** to `s3://your-hospital-athena-results/`.
-* Verify that workgroup `primary` is active.
-* Test query execution:
-  ```sql
-  SELECT facility_id, count(*) AS total_admissions, avg(length_of_stay_days) AS avg_los
-  FROM "medical_operations_db"."admissions"
-  GROUP BY facility_id;
-  ```
-
-### 4. Amazon Bedrock Access
-* In the AWS Bedrock console (`us-east-1`), verify model access for `amazon.nova-lite-v1:0`.
-
-### 5. Backend Configuration (`backend/.env`)
-Create `backend/.env` with your cloud identifiers:
-
-```ini
-AWS_REGION=ap-south-1
-AWS_S3_REGION=ap-south-1
-AWS_DATA_REGION=ap-south-2
-AWS_BEDROCK_REGION=us-east-1
-
-AWS_S3_BUCKET=your-hospital-operations-bucket
-AWS_GLUE_DATABASE=medical_operations_db
-AWS_ATHENA_WORKGROUP=primary
-AWS_ATHENA_OUTPUT=s3://your-hospital-athena-results/
-AWS_BEDROCK_MODEL=amazon.nova-lite-v1:0
-
-# When running in local development without Vercel OIDC:
-# AWS_ACCESS_KEY_ID=your_access_key
-# AWS_SECRET_ACCESS_KEY=your_secret_key
-```
+* Dashboard live at: `http://localhost:5173`
 
 ---
 
-## 26. Performance & Scalability Considerations
+## 21. AWS Cloud Infrastructure Deployment Guide
 
-To scale MedOps Intelligence across enterprise hospital networks processing millions of operational records, the platform incorporates key architectural optimization pathways:
+To connect the platform to your AWS Cloud environment:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    SCALABILITY ROADMAP                                          │
-├───────────────────────────────┬─────────────────────────────────┬───────────────────────────────┤
-│   STORAGE OPTIMIZATION        │   SERVERLESS QUERY PERFORMANCE  │   API & DASHBOARD ACCELERATION│
-│   • Partitioning by facility  │   • Query result reuse cache    │   • Multi-tier in-memory TTL  │
-│     and event date (YYYY/MM)  │   • Column projection pruning   │   • Edge response caching     │
-│   • Conversion from CSV to    │   • Workgroup data scan limits  │   • Virtualized tables for    │
-│     Snappy-compressed Parquet │     and cost governance alerts  │     high-cardinality listings │
-└───────────────────────────────┴─────────────────────────────────┴───────────────────────────────┘
-```
-
-1. **Partitioning Strategy**: Partitioning S3 data by `facility_id` and `event_date` (`year=YYYY/month=MM/`) enables Athena queries to scan only targeted partitions, reducing query latency and AWS data scan costs by up to 90%.
-2. **Columnar Parquet Storage**: Migrating historical raw CSV records to columnar Apache Parquet with Snappy compression minimizes storage footprint and accelerates Presto/Trino columnar scan speeds.
-3. **In-Memory Cache Layer**: The FastAPI service maintains a thread-safe DataFrame cache with a 300-second TTL to prevent redundant Athena query executions during high-frequency dashboard navigation.
-4. **Defensive Type Coercion**: Customized `_clean_df_types()` logic converts string-encoded currency amounts and quantities to native 64-bit numerics, preventing runtime string concatenation errors during aggregation.
-
----
-
-## 27. Product Roadmap & Milestone Tracking
-
-### Phase 1 — Core Data Lake & Analytics Platform `[COMPLETED]`
-- [x] Ingestion & modeling of 41 healthcare operational datasets
-- [x] AWS S3 Data Lake configuration with Glue Data Catalog integration
-- [x] Amazon Athena serverless SQL execution pipeline with execution polling
-- [x] FastAPI REST backend with defensive numeric aggregation and caching
-- [x] React 19 + TypeScript + Tailwind CSS executive frontend suite
-- [x] Preserved AWS Cloud Services Hub for live Glue schema inspection and Athena console
-- [x] Zero-credentials Vercel OIDC identity federation with AWS STS
-
-### Phase 2 — Decision Analytics, UX Truthfulness & Hardening `[IN PROGRESS]`
-- [x] **Phase 2A Completed**: Removed/reframed simulated operational triggers into truthful informational states
-- [x] **Phase 2B Completed**: Consolidated navigation to 20 user-facing modules and adopted "Current Operations" terminology
-- [x] **Phase 2C Completed**: Truthful data source states, standardized Athena loading notices, and explicit error/retry handling
-- [ ] Power BI DirectQuery integration via Athena ODBC/JDBC drivers
-- [ ] Automated Parquet conversion pipeline via scheduled AWS Glue ETL jobs
-- [ ] Granular backend RBAC route enforcement matching Cognito user groups
-
-### Phase 3 — Real-Time Streaming & Enterprise Scale `[PLANNED]`
-- [ ] Apache Kafka / Amazon Kinesis stream ingestion for sub-second telemetry
-- [ ] Predictive machine learning models for patient readmission risk scoring
-- [ ] Multi-hospital federated analytics across regional healthcare systems
-- [ ] Automated clinical staffing optimization based on predictive census forecasts
+1. **Amazon S3 Setup**:
+   * Create bucket for data lake: `s3://your-hospital-operations-bucket/` (`ap-south-1`).
+   * Create dedicated query results bucket: `s3://your-hospital-athena-results/`.
+   * Upload CSV files into table prefixes (e.g., `s3://your-hospital-operations-bucket/raw/admissions/admissions.csv`).
+2. **AWS Glue Cataloging**:
+   * Create database `medical_operations_db` in `ap-south-2`.
+   * Run an AWS Glue Crawler targeting `s3://your-hospital-operations-bucket/raw/`.
+3. **Amazon Athena Configuration**:
+   * Set Query Result Location to `s3://your-hospital-athena-results/`.
+   * Verify workgroup `primary` is active in `ap-south-2`.
+4. **Backend Configuration (`backend/.env`)**:
+   Configure cloud environment variables:
+   ```ini
+   AWS_REGION=ap-south-1
+   AWS_S3_REGION=ap-south-1
+   AWS_DATA_REGION=ap-south-2
+   AWS_BEDROCK_REGION=us-east-1
+   AWS_S3_BUCKET=your-hospital-operations-bucket
+   AWS_GLUE_DATABASE=medical_operations_db
+   AWS_ATHENA_WORKGROUP=primary
+   AWS_ATHENA_OUTPUT=s3://your-hospital-athena-results/
+   AI_PROVIDER=gemini
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-3.5-flash
+   ```
 
 ---
 
-## 28. Engineering Principles
+## 22. System Limitations & Future Engineering Roadmap
 
-The codebase and architecture adhere to strict core software engineering values:
+* **Amazon Bedrock Cloud Activation**: Model invocation is implemented in code (`backend/app/aws/bedrock.py`), but currently routes via the Google Gemini API adapter pending cloud-side AWS Bedrock account activation.
+* **Storage Format & Parquet Migration**: Source datasets in S3 are currently stored as uncompressed CSVs; automated conversion to Snappy-compressed Apache Parquet via AWS Glue ETL jobs is scheduled for Phase 3 to reduce Athena scan costs.
+* **Days Cash on Hand**: Omitted from current UI because source datasets lack balance-sheet cash reserves; integration with hospital ERP general ledgers is planned.
+* **Outbound EHR Actions**: The Workflow Automation Engine currently operates in read-only decision-support mode; bidirectional HL7/FHIR dispatch is scheduled on the production roadmap.
+
+---
+
+## 23. Engineering Principles & Project Truthfulness
 
 * **Modularity**: Every module, router, and cloud connector is decoupled and adheres to the Single Responsibility Principle (SRP).
 * **Least Privilege (PoLP)**: IAM roles and API scopes provide only the exact permissions needed for designated operations.
-* **Separation of Concerns**: Complete decoupling of data storage (S3), metadata cataloging (Glue), query execution (Athena), business logic (FastAPI), and presentation (React).
 * **Defensive Programming**: Resilient data handling with fallback dataset loading, NaN sanitization, and graceful degradation during cloud connectivity interruptions.
-* **Truthfulness in UI**: Absolute alignment between user interface controls and actual backend execution capabilities.
-
----
-
-## 29. Project Status, License & Acknowledgements
-
-### Project Status
-
-![Active Production](https://img.shields.io/badge/Status-Active%20Production-0ea5e9?style=for-the-badge)
-
-MedOps Intelligence is in **Active Production Deployment**. The core data lake, cataloging, serverless SQL query pipeline, FastAPI backend services, Amazon Bedrock copilot, Amazon Cognito PKCE authentication, and 20-module React command center are fully implemented, operational, and deployed live on Vercel.
-
-### License
-
-**License**: Proprietary / To Be Defined.  
-All rights reserved by the repository maintainer. Usage guidelines, licensing terms, and distribution rights are currently under definition. For academic review, partnership, or enterprise demonstration inquiries, please contact the author.
-
-### Acknowledgements & References
-
-* **AWS Architecture Documentation**: Best practices from AWS Big Data and Serverless Analytics reference architectures (Amazon S3, AWS Glue, Amazon Athena, Amazon Bedrock, Amazon Cognito).
-* **FastAPI Framework**: [FastAPI Documentation](https://fastapi.tiangolo.com/) by Sebastián Ramírez.
-* **React & Vite**: [React](https://react.dev/) by Meta Open Source and [Vite](https://vitejs.dev/) by Evan You.
-* **Healthcare Operations Analytics**: Industry benchmark metrics informed by the Healthcare Financial Management Association (HFMA) and Emergency Severity Index (ESI) triage protocols.
+* **Truthfulness in UI**: Absolute alignment between user interface controls and actual backend execution capabilities. Removed metrics are disclosed honestly rather than presenting fabricated data.
 
 ---
 
