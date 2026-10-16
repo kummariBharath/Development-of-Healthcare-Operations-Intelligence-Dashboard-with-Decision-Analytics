@@ -2,27 +2,27 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased font-sans selection:bg-cyan-500 selection:text-white;
+    @apply bg-[#F8FAFC] text-slate-800 antialiased font-sans selection:bg-cyan-500 selection:text-white;
   }
 }
 
-/* Custom scrollbars */
+/* Light theme custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(241, 245, 249, 0.8);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+  background: rgba(203, 213, 225, 0.8);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 1);
+  background: rgba(148, 163, 184, 1);
 }
 
 /* Pulse glow animations */
@@ -33,4 +33,356 @@
 
 .animate-pulse-glow {
   animation: pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==========================================================================
+   MedOps Clean White Theme - Global & Shared Dashboard Styles
+   ========================================================================== */
+
+/* Main content background */
+main {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Content cards and panels - White backgrounds with subtle gray borders */
+main .bg-slate-900,
+.medops-modal-card .bg-slate-900,
+.medops-drawer-card .bg-slate-900 {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+}
+
+/* Card hover states */
+main .hover\:border-slate-700:hover,
+.medops-modal-card .hover\:border-slate-700:hover,
+.medops-drawer-card .hover\:border-slate-700:hover {
+  border-color: #cbd5e1;
+}
+
+/* Inner panels, stat wells, code blocks, and subcards */
+main .bg-slate-950,
+main .bg-slate-950\/90,
+main .bg-slate-950\/80,
+main .bg-slate-950\/70,
+main .bg-slate-950\/60,
+main .bg-slate-950\/50,
+main .bg-slate-950\/40,
+.medops-modal-card .bg-slate-950,
+.medops-modal-card .bg-slate-950\/90,
+.medops-modal-card .bg-slate-950\/80,
+.medops-modal-card .bg-slate-950\/70,
+.medops-modal-card .bg-slate-950\/60,
+.medops-modal-card .bg-slate-950\/50,
+.medops-drawer-card .bg-slate-950,
+.medops-drawer-card .bg-slate-950\/80 {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Secondary badges, subtle pill buttons, and filter bars */
+main .bg-slate-800,
+main .bg-slate-800\/90,
+main .bg-slate-800\/80,
+main .bg-slate-800\/60,
+main .bg-slate-800\/50,
+main .bg-slate-800\/40,
+.medops-modal-card .bg-slate-800,
+.medops-modal-card .bg-slate-800\/90,
+.medops-modal-card .bg-slate-800\/80,
+.medops-drawer-card .bg-slate-800,
+.medops-drawer-card .bg-slate-800\/90 {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+main .hover\:bg-slate-800:hover,
+main .hover\:bg-slate-800\/90:hover,
+main .hover\:bg-slate-800\/80:hover,
+main .hover\:bg-slate-800\/60:hover,
+main .hover\:bg-slate-800\/40:hover,
+main .hover\:bg-slate-700:hover,
+.medops-modal-card .hover\:bg-slate-800:hover,
+.medops-modal-card .hover\:bg-slate-700:hover,
+.medops-drawer-card .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0;
+}
+
+/* Subtle light-gray borders */
+main .border-slate-800,
+main .border-slate-800\/90,
+main .border-slate-800\/80,
+main .border-slate-800\/60,
+main .border-slate-800\/40,
+main .border-slate-700,
+main .border-slate-700\/80,
+main .border-slate-700\/60,
+.medops-modal-card .border-slate-800,
+.medops-modal-card .border-slate-800\/90,
+.medops-modal-card .border-slate-800\/80,
+.medops-modal-card .border-slate-700,
+.medops-drawer-card .border-slate-800,
+.medops-drawer-card .border-slate-700 {
+  border-color: #e2e8f0;
+}
+
+/* Dividers */
+main .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+main .divide-slate-700 > :not([hidden]) ~ :not([hidden]),
+.medops-modal-card .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f1f5f9;
+}
+
+/* Typography & Contrast */
+main .text-white,
+.medops-modal-card .text-white,
+.medops-drawer-card .text-white {
+  color: #0f172a;
+}
+
+main .text-slate-100,
+.medops-modal-card .text-slate-100,
+.medops-drawer-card .text-slate-100 {
+  color: #0f172a;
+}
+
+main .text-slate-200,
+.medops-modal-card .text-slate-200,
+.medops-drawer-card .text-slate-200 {
+  color: #1e293b;
+}
+
+main .text-slate-300,
+.medops-modal-card .text-slate-300,
+.medops-drawer-card .text-slate-300 {
+  color: #334155;
+}
+
+main .text-slate-400,
+.medops-modal-card .text-slate-400,
+.medops-drawer-card .text-slate-400 {
+  color: #64748b;
+}
+
+main .text-slate-500,
+.medops-modal-card .text-slate-500,
+.medops-drawer-card .text-slate-500 {
+  color: #94a3b8;
+}
+
+/* Hover text adjustments */
+main .hover\:text-white:hover,
+.medops-modal-card .hover\:text-white:hover,
+.medops-drawer-card .hover\:text-white:hover {
+  color: #0f172a;
+}
+
+main .hover\:text-slate-200:hover,
+.medops-modal-card .hover\:text-slate-200:hover {
+  color: #0f172a;
+}
+
+/* Explicitly preserve text contrast on colored action buttons and badges */
+main [class*="bg-cyan-500"].text-slate-950,
+main [class*="bg-cyan-400"].text-slate-950,
+.medops-modal-card [class*="bg-cyan-500"].text-slate-950,
+.medops-drawer-card [class*="bg-cyan-500"].text-slate-950 {
+  color: #082f49 !important;
+}
+
+main button[class*="bg-cyan-600"],
+main button[class*="bg-teal-600"],
+main button[class*="bg-emerald-600"],
+main button[class*="bg-rose-600"],
+main button[class*="bg-gradient-"],
+main a[class*="bg-gradient-"],
+main span[class*="bg-rose-500"],
+main span[class*="bg-emerald-500"],
+main span[class*="bg-orange-500"],
+main span[class*="bg-blue-600"],
+.medops-drawer-card [class*="bg-cyan-600"] {
+  color: #ffffff !important;
+}
+
+main button[class*="bg-cyan-600"] .text-white,
+main button[class*="bg-teal-600"] .text-white,
+main button[class*="bg-gradient-"] .text-white,
+main button[class*="bg-rose-600"] .text-white,
+main span[class*="bg-rose-500"].text-white,
+main span[class*="bg-emerald-500"].text-white,
+main span[class*="bg-orange-500"].text-white,
+main span.bg-rose-500,
+main span.bg-emerald-500,
+main span.bg-orange-500 {
+  color: #ffffff !important;
+}
+
+/* Healthcare Status Badges - Clean light palette with great contrast */
+main [class*="bg-emerald-950"],
+.medops-modal-card [class*="bg-emerald-950"] {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+main [class*="bg-rose-950"],
+.medops-modal-card [class*="bg-rose-950"] {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border-color: #fecdd3 !important;
+}
+
+main [class*="bg-amber-950"],
+.medops-modal-card [class*="bg-amber-950"] {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+main [class*="bg-cyan-950"],
+.medops-modal-card [class*="bg-cyan-950"],
+.medops-drawer-card [class*="bg-cyan-950"] {
+  background-color: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #a5f3fc !important;
+}
+
+main [class*="bg-blue-950"],
+.medops-modal-card [class*="bg-blue-950"] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+main [class*="bg-sky-950"],
+.medops-modal-card [class*="bg-sky-950"] {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+
+/* Error banner containers */
+main div[class*="bg-rose-950"] h3,
+main div[class*="bg-rose-950"] .text-white {
+  color: #9f1239 !important;
+}
+
+main div[class*="bg-rose-950"] p,
+main div[class*="bg-rose-950"] .text-rose-200,
+main div[class*="bg-rose-950"] .text-rose-300 {
+  color: #be123c !important;
+}
+
+/* High-contrast healthcare data tables */
+main table {
+  color: #334155;
+}
+
+main thead,
+main thead.bg-slate-950\/80,
+.medops-modal-card thead,
+.medops-modal-card thead.bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+main thead th,
+.medops-modal-card thead th {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+main tbody tr,
+.medops-modal-card tbody tr {
+  border-bottom-color: #f1f5f9 !important;
+}
+
+main tbody tr:hover,
+main tr.hover\:bg-slate-800\/40:hover,
+.medops-modal-card tbody tr:hover,
+.medops-modal-card tr.hover\:bg-slate-800\/40:hover {
+  background-color: #f8fafc !important;
+}
+
+main td.text-white,
+main td .text-white,
+.medops-modal-card td.text-white,
+.medops-modal-card td .text-white {
+  color: #0f172a !important;
+}
+
+/* Form controls, inputs, and select dropdowns */
+main input:not([type="checkbox"]):not([type="radio"]),
+main select,
+main textarea,
+.medops-modal-card input:not([type="checkbox"]):not([type="radio"]),
+.medops-modal-card select,
+.medops-drawer-card input:not([type="checkbox"]):not([type="radio"]) {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+main input::placeholder,
+.medops-modal-card input::placeholder,
+.medops-drawer-card input::placeholder {
+  color: #94a3b8 !important;
+}
+
+main select option,
+.medops-modal-card select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Recharts Visualizations */
+main .recharts-cartesian-grid-line,
+.medops-modal-card .recharts-cartesian-grid-line {
+  stroke: #e2e8f0 !important;
+}
+
+main .recharts-default-tooltip,
+.medops-modal-card .recharts-default-tooltip,
+.medops-drawer-card .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+main .recharts-tooltip-item,
+.medops-modal-card .recharts-tooltip-item,
+.medops-drawer-card .recharts-tooltip-item {
+  color: #0f172a !important;
+}
+
+main .recharts-tooltip-label,
+.medops-modal-card .recharts-tooltip-label,
+.medops-drawer-card .recharts-tooltip-label {
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+main .recharts-legend-item-text,
+.medops-modal-card .recharts-legend-item-text,
+.medops-drawer-card .recharts-legend-item-text {
+  color: #475569 !important;
+  font-size: 11px !important;
+}
+
+main .recharts-text,
+.medops-modal-card .recharts-text,
+.medops-drawer-card .recharts-text {
+  fill: #64748b !important;
+}
+
+/* Decorative background effects removal */
+main .blur-3xl,
+main .blur-2xl,
+.medops-modal-card .blur-3xl,
+.medops-modal-card .blur-2xl {
+  display: none !important;
 }

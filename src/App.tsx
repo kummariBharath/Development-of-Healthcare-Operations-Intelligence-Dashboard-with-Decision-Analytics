@@ -78,11 +78,11 @@ export const MedOpsDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
       {/* Action Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 right-6 z-50 bg-cyan-950 border border-cyan-500 text-cyan-200 px-4 py-3 rounded-2xl shadow-2xl text-xs font-semibold flex items-center gap-2 animate-bounce">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+        <div className="fixed top-16 right-6 z-50 bg-white border border-cyan-400 text-cyan-950 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 animate-bounce">
+          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" />
           {toastMessage}
         </div>
       )}
@@ -108,7 +108,7 @@ export const MedOpsDashboard: React.FC = () => {
         />
 
         {/* Dynamic Module Content View */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto max-w-full">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto max-w-full bg-[#F8FAFC]">
           {activeModule === 'executive' && (
             <ExecutiveCommandCenter
               selectedFacility={selectedFacility}
