@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
-  CheckCircle2, 
   AlertTriangle, 
-  FileSpreadsheet, 
-  DollarSign, 
   RefreshCw, 
   Search, 
-  ShieldCheck, 
-  Star,
-  Clock,
+  Star, 
   PackageCheck
 } from 'lucide-react';
 import { 
@@ -234,7 +229,6 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
                     <th className="py-3 px-3">On-Time Delivery %</th>
                     <th className="py-3 px-3">Quality Score</th>
                     <th className="py-3 px-3">Avg Lead Time</th>
-                    <th className="py-3 px-3">Defect / Damage Rate</th>
                     <th className="py-3 px-3">Active PO Value</th>
                     <th className="py-3 px-3">Risk & SLA Status</th>
                   </tr>
@@ -242,7 +236,7 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
                 <tbody className="divide-y divide-slate-800/60 font-mono">
                   {filteredVendors.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-500 font-sans">
+                      <td colSpan={8} className="py-8 text-center text-slate-500 font-sans">
                         No suppliers found matching your filter criteria.
                       </td>
                     </tr>
@@ -263,9 +257,6 @@ export const SupplyChainVendor: React.FC<SupplyChainVendorProps> = ({
                         <td className="py-3 px-3 font-bold text-emerald-400">{v.onTimeDeliveryPct}%</td>
                         <td className="py-3 px-3 font-bold text-cyan-400">{v.qualityScore}%</td>
                         <td className="py-3 px-3 text-slate-300">{v.avgLeadTimeDays} days</td>
-                        <td className="py-3 px-3 text-slate-500 font-sans text-[11px]">
-                          {v.defectRateFormatted}
-                        </td>
                         <td className="py-3 px-3 font-bold text-white">
                           {v.activePOValueFormatted}
                           {v.poCount > 0 && (
