@@ -13,7 +13,6 @@ import {
   HeartHandshake, 
   Truck, 
   TrendingUp, 
-  Bot, 
   ChevronRight
 } from 'lucide-react';
 
@@ -30,8 +29,7 @@ export type ModuleId =
   | 'quality-compliance'
   | 'patient-exp'
   | 'supply-chain'
-  | 'financial-intel'
-  | 'ai-copilot-tab';
+  | 'financial-intel';
 
 interface SidebarProps {
   activeModule: ModuleId;
@@ -78,12 +76,6 @@ const navGroups: NavGroup[] = [
       { id: 'quality-compliance', label: 'Quality & Compliance', icon: ShieldAlert },
       { id: 'patient-exp', label: 'Patient Experience', icon: HeartHandshake },
       { id: 'supply-chain', label: 'Supply Chain & Vendors', icon: Truck },
-    ],
-  },
-  {
-    groupName: 'AI Agent & Decision Support',
-    items: [
-      { id: 'ai-copilot-tab', label: 'Medical Operations AI Agent', icon: Bot },
     ],
   },
 ];

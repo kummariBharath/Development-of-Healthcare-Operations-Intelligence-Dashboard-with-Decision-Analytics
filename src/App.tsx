@@ -18,7 +18,6 @@ import { QualityCompliance } from './components/modules/QualityCompliance';
 import { PatientExperience } from './components/modules/PatientExperience';
 import { SupplyChainVendor } from './components/modules/SupplyChainVendor';
 import { FinancialIntelligence } from './components/modules/FinancialIntelligence';
-import { MedicalOpsAIAgentTab } from './components/modules/MedicalOpsAIAgentTab';
 
 // Modals
 import { EnterpriseDrilldownModal } from './components/modals/EnterpriseDrilldownModal';
@@ -187,14 +186,6 @@ export const MedOpsDashboard: React.FC = () => {
               selectedFacility={selectedFacility}
               selectedTimeframe={selectedTimeframe}
               onExecuteAction={handleExecuteAction}
-            />
-          )}
-
-          {activeModule === 'ai-copilot-tab' && (
-            <MedicalOpsAIAgentTab 
-              selectedFacility={selectedFacility}
-              selectedTimeframe={selectedTimeframe}
-              onExecuteAction={handleExecuteAction} 
             />
           )}
         </main>
