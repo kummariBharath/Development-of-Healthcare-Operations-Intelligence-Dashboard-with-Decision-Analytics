@@ -56,14 +56,14 @@ const navGroups: NavGroup[] = [
       { id: 'executive', label: 'Executive Command Center', icon: Building2 },
       { id: 'patient-ops', label: 'Patient Operations', icon: Users },
       { id: 'staff-intel', label: 'Doctor & Staff Intelligence', icon: Stethoscope },
-      { id: 'emergency-ops', label: 'Emergency & Critical Ops', icon: Siren, badge: 'Live', badgeColor: 'bg-[#FB7185]/20 text-[#FB7185] border border-[#FB7185]/40' },
+      { id: 'emergency-ops', label: 'Emergency & Critical Ops', icon: Siren },
     ],
   },
   {
     groupName: 'Revenue Cycle & Finance',
     items: [
       { id: 'billing-rev', label: 'Billing & Revenue Intelligence', icon: DollarSign },
-      { id: 'claims-auto', label: 'Insurance & Claims Automation', icon: FileCheck2, badge: '88% AI Risk', badgeColor: 'bg-[#FBBF24]/20 text-[#FBBF24] border border-[#FBBF24]/40' },
+      { id: 'claims-auto', label: 'Insurance & Claims Automation', icon: FileCheck2 },
       { id: 'coding-doc', label: 'Medical Coding & Documentation', icon: Code2 },
       { id: 'financial-intel', label: 'Financial Intelligence (P&L)', icon: TrendingUp },
     ],
@@ -72,7 +72,7 @@ const navGroups: NavGroup[] = [
     groupName: 'Clinical, Quality & Supply',
     items: [
       { id: 'lab-diag', label: 'Laboratory & Diagnostics', icon: TestTube },
-      { id: 'pharmacy-inv', label: 'Pharmacy & Inventory', icon: Pill, badge: '2 Low', badgeColor: 'bg-[#FBBF24]/20 text-[#FBBF24] border border-[#FBBF24]/40' },
+      { id: 'pharmacy-inv', label: 'Pharmacy & Inventory', icon: Pill },
       { id: 'quality-compliance', label: 'Quality & Compliance', icon: ShieldAlert },
       { id: 'patient-exp', label: 'Patient Experience', icon: HeartHandshake },
       { id: 'supply-chain', label: 'Supply Chain & Vendors', icon: Truck },
