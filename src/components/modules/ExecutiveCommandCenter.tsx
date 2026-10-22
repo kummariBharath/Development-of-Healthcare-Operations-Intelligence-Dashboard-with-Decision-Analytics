@@ -404,10 +404,10 @@ export const ExecutiveCommandCenter: React.FC<ExecutiveCommandCenterProps> = ({
                     <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} unit="M" />
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#4B4B4B" />
+                <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} />
+                <YAxis stroke="#9CA3AF" fontSize={11} unit="M" />
+                <Tooltip contentStyle={{ backgroundColor: '#2D2D2D', borderColor: '#4B4B4B', borderRadius: '8px', fontSize: '12px', color: '#F9FAFB' }} />
                 <Area type="monotone" dataKey="Surgery" stroke="#34d399" fillOpacity={1} fill="url(#colorSurg)" />
                 <Area type="monotone" dataKey="Cardiology" stroke="#38bdf8" fillOpacity={1} fill="url(#colorCardio)" />
               </AreaChart>

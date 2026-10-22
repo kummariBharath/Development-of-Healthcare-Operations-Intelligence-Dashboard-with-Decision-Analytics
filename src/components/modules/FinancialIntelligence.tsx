@@ -255,11 +255,11 @@ export const FinancialIntelligence: React.FC<FinancialIntelligenceProps> = ({
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={expenseCategories}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} tickFormatter={(val) => `₹${(val / 1e6).toFixed(1)}M`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4B4B4B" />
+                  <XAxis dataKey="category" stroke="#9CA3AF" fontSize={11} />
+                  <YAxis stroke="#9CA3AF" fontSize={11} tickFormatter={(val) => `₹${(val / 1e6).toFixed(1)}M`} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: '#2D2D2D', borderColor: '#4B4B4B', borderRadius: '8px', fontSize: '12px', color: '#F9FAFB' }}
                     formatter={(value: any) => [`₹${(Number(value) / 1e6).toFixed(2)} Million`, 'Expense Amount']}
                   />
                   <Bar dataKey="amount" fill="#34d399" radius={[4, 4, 0, 0]} />
