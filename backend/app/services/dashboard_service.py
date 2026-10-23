@@ -10,6 +10,12 @@ import pandas as pd
 from app.aws.athena import execute_athena_query
 from app.aws.session import get_s3_client
 from app.config import settings
+from app.services.facility_resolver import (
+    normalize_facility_id,
+    get_facility_canonical_name,
+    get_facility_display_label,
+    get_all_canonical_facilities,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -433,6 +439,7 @@ def _apply_date_filter(
 def get_facilities_list() -> List[Dict[str, Any]]:
     """
     Returns the list of facilities from Athena or local dataset.
+    Falls back gracefully to authoritative canonical registry.
     """
     df = _load_table('facilities')
     if df is not None and not df.empty:
@@ -446,7 +453,7 @@ def get_facilities_list() -> List[Dict[str, Any]]:
             })
         return facilities
         
-    return []
+    return get_all_canonical_facilities()
 
 def get_executive_summary(
     facility_id: str = 'all',
@@ -725,15 +732,9 @@ def get_ai_executive_summary(
     exec_data = get_executive_summary(facility_id, timeframe, start_date, end_date)
     raw = dict(exec_data.get('rawMetrics', {}))
 
-    facility_labels = {
-        'all': 'All Network Facilities',
-        'FAC001': 'Metro Health Center (FAC001)',
-        'FAC002': 'St. Jude Community Hospital (FAC002)',
-        'FAC003': 'Highland Regional Medical Center (FAC003)',
-        'FAC004': 'Valley Childrens & Specialty Clinic (FAC004)',
-        'FAC005': 'Lakeside Memorial Hospital (FAC005)'
-    }
-    fac_label = facility_labels.get(facility_id, f"Facility {facility_id}")
+    norm_id = normalize_facility_id(facility_id)
+    fac_label = get_facility_display_label(norm_id, include_id=True)
+    canonical_name = get_facility_canonical_name(norm_id)
 
     # Safely load supplementary verified operational metrics
     try:
