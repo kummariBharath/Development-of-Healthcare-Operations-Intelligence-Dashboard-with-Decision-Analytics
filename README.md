@@ -265,10 +265,12 @@ Additional architectural diagrams available in repository:
 
 ## 10. Application Screenshots
 
+The production interface screenshot of the live application is maintained in the repository at [docs/assets/application_screenshot.png](file:///docs/assets/application_screenshot.png):
+
 <div align="center">
-<img src="src/assets/hero.png" alt="MedOps Executive Command Center Interface" width="850" style="border-radius: 8px; border: 1px solid #CBD5E1;" />
+<img src="docs/assets/application_screenshot.png" alt="MedOps Executive Command Center Interface" width="850" style="border-radius: 8px; border: 1px solid #CBD5E1;" />
 <br/>
-<em>Figure 10.1: MedOps Executive Command Center with Cross-Facility Slicing and Real-Time KPI Cards</em>
+<em>Figure 10.1: MedOps Executive Command Center with Cross-Facility Slicing, Real-Time Athena Telemetry, and AI Executive Briefing</em>
 </div>
 
 ---
